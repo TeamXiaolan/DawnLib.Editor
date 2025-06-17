@@ -41,6 +41,15 @@ public class DynamicConfigDrawer : PropertyDrawer
             case CRDynamicConfigType.Bool:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultBool"), new GUIContent("Default Value"));
                 break;
+            case CRDynamicConfigType.BoundedRange:
+                var boundedRangeProperty = property.FindPropertyRelative("defaultBoundedRange");
+                if (boundedRangeProperty.isExpanded)
+                    descRect = new Rect(position.x, position.y + (lineHeight + spacing) * 5, position.width, lineHeight);
+                EditorGUI.PropertyField(defaultRect, boundedRangeProperty, new GUIContent("Default Value"), true);
+                break;
+            case CRDynamicConfigType.AnimationCurve:
+                EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultAnimationCurve"), new GUIContent("Default Value"));
+                break;
         }
 
         EditorGUI.PropertyField(descRect, property.FindPropertyRelative("Description"), new GUIContent("Description"));
@@ -52,6 +61,9 @@ public class DynamicConfigDrawer : PropertyDrawer
         float lineHeight = EditorGUIUtility.singleLineHeight;
         float spacing = EditorGUIUtility.standardVerticalSpacing;
         // Four lines (Key, Type, Default Value, Description) plus spacing.
-        return (lineHeight * 4) + (spacing * 3);
+        SerializedProperty dynamicTypeProp = property.FindPropertyRelative("DynamicConfigType");
+        CRDynamicConfigType configType = (CRDynamicConfigType)dynamicTypeProp.enumValueIndex;
+        var boundedRangeProperty = property.FindPropertyRelative("defaultBoundedRange");
+        return (lineHeight * (configType == CRDynamicConfigType.BoundedRange && boundedRangeProperty.isExpanded ? 6.25f : 4)) + (spacing * 3);
     }
 }
