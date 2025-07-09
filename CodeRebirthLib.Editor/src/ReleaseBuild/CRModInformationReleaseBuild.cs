@@ -1,26 +1,18 @@
+using System;
 using System.IO;
 using System.IO.Compression;
-using Microsoft.Win32.SafeHandles;
+using CodeRebirthLib.ContentManagement.Weathers;
 using UnityEditor;
 using UnityEngine;
 
-namespace CodeRebirthLib.Editor.PropertyDrawers;
-
+namespace CodeRebirthLib.Editor.ReleaseBuild;
 [CustomEditor(typeof(CRModInformation))]
 public class CRModInformationReleaseBuild : UnityEditor.Editor
 {
-    // add a couple of fields for TextAsset for README and CHANGELOG files? both can likely be empty
-    // add field for mod description, which would just be a string, can be empty
-    // add field for website url, which would just be a string, can be empty
-    // add path to icon image -> error handling for resolution of image being a max of 256x256
-    // add path to assetbundles -> error handling for there being only one *.crmod bundle and atleast one other non .crmod bundle
-    // add button to do a build 
-
     [field: SerializeField]
-    public string AssetBundleFolderPath { get; private set; }
-
+    public string AssetBundleFolderPath { get; private set; } = string.Empty;
     [field: SerializeField]
-    public string BuildOutputPath { get; private set; }
+    public string BuildOutputPath { get; private set; } = string.Empty;
 
     public override void OnInspectorGUI()
     {
@@ -28,29 +20,33 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
         CRModInformation modInfo = (CRModInformation)target;
         EditorGUILayout.Space(2.5f);
 
-        EditorGUILayout.BeginHorizontal();
-        string newAssetBundleDirectory = EditorGUILayout.TextField("AssetBundle Directory:", AssetBundleFolderPath, GUILayout.ExpandWidth(true));
-        if (GUILayout.Button("Select", EditorStyles.miniButton))
+        using (new EditorGUILayout.HorizontalScope())
         {
-            newAssetBundleDirectory = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, "");
-            if (!string.IsNullOrEmpty(newAssetBundleDirectory))
+            EditorGUILayout.LabelField("AssetBundle Directory:", GUILayout.Width(140));
+            AssetBundleFolderPath = EditorGUILayout.TextField(AssetBundleFolderPath);
+            if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
             {
-                AssetBundleFolderPath = newAssetBundleDirectory;
+                string path = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, "");
+                if (!string.IsNullOrEmpty(path))
+                {
+                    AssetBundleFolderPath = path;
+                }
             }
         }
-        EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.BeginHorizontal();
-        string newBuildOutputPath = EditorGUILayout.TextField("Build Output Directory:", BuildOutputPath, GUILayout.ExpandWidth(true));
-        if (GUILayout.Button("Select", EditorStyles.miniButton))
+        using (new EditorGUILayout.HorizontalScope())
         {
-            newBuildOutputPath = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, "");
-            if (!string.IsNullOrEmpty(newBuildOutputPath))
+            EditorGUILayout.LabelField("Build Output Directory:", GUILayout.Width(140));
+            BuildOutputPath = EditorGUILayout.TextField(BuildOutputPath);
+            if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
             {
-                BuildOutputPath = newBuildOutputPath;
+                string path = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, "");
+                if (!string.IsNullOrEmpty(path))
+                {
+                    BuildOutputPath = path;
+                }
             }
         }
-        EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.Space(5);
 
@@ -65,32 +61,103 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
 
     private void BuildZipPackage(CRModInformation modInfo)
     {
-        string zipPath = BuildOutputPath;
-        FileStream readmeFileStream = new FileStream(AssetDatabase.GetAssetPath(modInfo.READMEFile), FileMode.CreateNew, FileAccess.Read);
-        ZipArchive readmeZipArchive = new ZipArchive(readmeFileStream, ZipArchiveMode.Create);
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"CRModPack_{Guid.NewGuid()}");
+        var pluginsDir = Path.Combine(tempRoot, "plugins");
+        var assetsSubDir = Path.Combine(pluginsDir, "Assets");
+        Directory.CreateDirectory(assetsSubDir);
 
-        FileStream changelogFileStream = new FileStream(AssetDatabase.GetAssetPath(modInfo.ChangelogFile), FileMode.CreateNew, FileAccess.Read);
-        ZipArchive changelogZipArchive = new ZipArchive(changelogFileStream, ZipArchiveMode.Create);
+        try
+        {
+            if (modInfo.READMEFile != null)
+            {
+                File.WriteAllBytes(Path.Combine(tempRoot, "README.md"), modInfo.READMEFile.bytes);
+            }
 
-        // FileStream iconFileStream = new FileStream(AssetDatabase.GetAssetPath(modInfo.ModIcon), FileMode.CreateNew, FileAccess.Read);
-        // ZipArchive iconZipArchive = new ZipArchive(iconFileStream, ZipArchiveMode.Create);
+            if (modInfo.ChangelogFile != null)
+            {
+                File.WriteAllBytes(Path.Combine(tempRoot, "CHANGELOG.md"), modInfo.ChangelogFile.bytes);
+            }
 
-        ZipArchiveEntry readmeZipEntry = readmeZipArchive.CreateEntry("README.md");
-        readmeZipEntry.Open().Write(modInfo.READMEFile.bytes, 0, modInfo.READMEFile.bytes.Length);
-        ZipArchiveEntry changelogZipEntry = changelogZipArchive.CreateEntry("CHANGELOG.md");
-        changelogZipEntry.Open().Write(modInfo.ChangelogFile.bytes, 0, modInfo.ChangelogFile.bytes.Length);
-        // ZipArchiveEntry iconZipEntry = iconZipArchive.CreateEntry("icon.png");
-        // iconZipEntry.Open().Write(modInfo.ModIcon.bytes, 0, modInfo.ModIcon.bytes.Length);
-        readmeZipArchive.Dispose();
-        changelogZipArchive.Dispose();
-        // iconZipArchive.Dispose();
+            if (modInfo.ModIcon == null)
+            {
+                EditorUtility.DisplayDialog("Error", "Mod icon not provided, aborting.", "OK");
+                return;
+            }
 
-        // Put the README, changelog and icon next to eachother, create a manifest.json file with a specific format.
-        // Create the manifest.json file using a format with unfilled fields that can be filled with AuthorName, ModName, Version, ModDescription and WebsiteUrl from CRModInformation.
-        // Then make a folder called plugins and put a folder called Assets inside it.
-        // Inside the plugins folder put the assetbundles with the .crmod extension in it.
-        // Inside the Assets folder put the other assetbundles without the .crmod extension in it.
-        // if possible check whether any of the bundles contain a CRWeatherDefinition ScriptableObject in them and log that.
+            var tex = modInfo.ModIcon;
 
+            if (!modInfo.ModIcon.isReadable)
+            {
+                EditorUtility.DisplayDialog("Error", "Mod icon is not readable, aborting.", "OK");
+                return;
+            }
+
+            if (tex.width > 256 || tex.height > 256)
+            {
+                EditorUtility.DisplayDialog("Error", "Mod Icon is {tex.width}x{tex.height}, it needs to be resized to a maximum of 256x256, aborting.", "OK");
+                // var resized = new Texture2D(256, 256, tex.format, mipChain: false);
+                // Graphics.ConvertTexture(tex, resized);
+                // File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), resized.EncodeToPNG());
+                return;
+            }
+
+            File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), tex.EncodeToPNG());
+
+            bool includeWR = false;
+            string[] allBundleFiles = Directory.GetFiles(AssetBundleFolderPath);
+            foreach (var potentialBundleFile in allBundleFiles)
+            {
+                string fileExtension = Path.GetExtension(potentialBundleFile).ToLowerInvariant();
+                if (fileExtension == ".meta")
+                    continue;
+
+                if (fileExtension == ".lethalbundle")
+                    continue;
+
+                string destDir = fileExtension == ".crmod" ? pluginsDir : assetsSubDir;
+                string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFile));
+                File.Copy(potentialBundleFile, dest, true);
+
+                AssetBundle? assetBundle = AssetBundle.LoadFromFile(dest);
+                if (assetBundle == null)
+                    continue;
+
+                CRWeatherDefinition[] weathers = assetBundle.LoadAllAssets<CRWeatherDefinition>();
+                if (weathers.Length > 0)
+                {
+                    includeWR = true;
+                    Debug.Log($"[CRLib Editor] Bundle '{Path.GetFileName(potentialBundleFile)}' contains a CRWeatherDefinition!");
+                }
+                assetBundle.Unload(true);
+            }
+
+            ThunderstoreManifest manifest = new ThunderstoreManifest(modInfo, includeWR);
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(manifest);
+            File.WriteAllText(Path.Combine(tempRoot, "manifest.json"), json);
+
+            var zipName = $"{modInfo.AuthorName}.{modInfo.ModName}_{modInfo.Version}.zip";
+            var zipPath = Path.Combine(BuildOutputPath, zipName);
+            if (File.Exists(zipPath))
+            {
+                File.Delete(zipPath);
+            }
+
+            ZipFile.CreateFromDirectory(tempRoot, zipPath, System.IO.Compression.CompressionLevel.Optimal, false);
+
+            Debug.Log($"[CRLib Editor] Mod package built successfully at: {zipPath}");
+        }
+        catch (Exception ex)
+        {
+            EditorUtility.DisplayDialog("Error", $"Failed to build mod package: {ex.Message}", "OK");
+            Debug.LogError($"[CRLib Editor] Failed to build mod package: {ex.Message}");
+        }
+        finally
+        {
+            try
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+            catch { /* ignore */ }
+        }
     }
 }
