@@ -14,6 +14,13 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
     [field: SerializeField]
     public string BuildOutputPath { get; private set; } = string.Empty;
 
+    private void OnEnable()
+    {
+        CRModInformation modInfo = (CRModInformation)target;
+        AssetBundleFolderPath = EditorPrefs.GetString("CRLibEditor.AssetBundlePath." + modInfo.name, string.Empty);
+        BuildOutputPath = EditorPrefs.GetString("CRLibEditor.BuildOutputPath." + modInfo.name, string.Empty);
+    }
+
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
@@ -29,6 +36,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                 string path = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
+                    EditorPrefs.SetString("CRLibEditor.AssetBundlePath." + modInfo.name, path);
                     AssetBundleFolderPath = path;
                 }
             }
@@ -43,6 +51,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                 string path = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
+                    EditorPrefs.SetString("CRLibEditor.BuildOutputPath." + modInfo.name, path);
                     BuildOutputPath = path;
                 }
             }

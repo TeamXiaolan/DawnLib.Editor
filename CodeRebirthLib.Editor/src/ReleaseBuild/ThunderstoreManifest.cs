@@ -35,7 +35,7 @@ public class ThunderstoreManifest(CRModInformation modInfo, bool includeWR)
         {
             dependencies.Add("mrov-WeatherRegistry-0.6.1");
         }
-        dependencies.Add("XuXiaolan-CodeRebirthLib-0.9.0");
+        dependencies.Add("XuXiaolan-CodeRebirthLib-0.9.1");
         return dependencies;
     }
 }
