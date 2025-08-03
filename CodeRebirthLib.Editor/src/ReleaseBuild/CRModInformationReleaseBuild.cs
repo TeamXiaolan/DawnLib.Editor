@@ -93,15 +93,15 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                 return;
             }
 
-            var tex = modInfo.ModIcon;
+            var sprite = modInfo.ModIcon;
 
-            if (!modInfo.ModIcon.isReadable)
+            if (!sprite.texture.isReadable)
             {
                 EditorUtility.DisplayDialog("Error", "Mod icon is not readable, aborting.", "OK");
                 return;
             }
 
-            if (tex.width > 256 || tex.height > 256)
+            if (sprite.texture.width > 256 || sprite.texture.height > 256)
             {
                 EditorUtility.DisplayDialog("Error", "Mod Icon is {tex.width}x{tex.height}, it needs to be resized to a maximum of 256x256, aborting.", "OK");
                 // var resized = new Texture2D(256, 256, tex.format, mipChain: false);
@@ -110,7 +110,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                 return;
             }
 
-            File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), tex.EncodeToPNG());
+            File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), sprite.texture.EncodeToPNG());
 
             bool includeWR = false;
             string[] allBundleFiles = Directory.GetFiles(AssetBundleFolderPath);
