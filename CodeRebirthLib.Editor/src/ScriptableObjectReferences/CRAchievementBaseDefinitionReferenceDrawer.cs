@@ -8,14 +8,13 @@ public class CRAchievementBaseDefinitionReferenceDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-#if UNITY_EDITOR
         SerializedProperty achievementAssetProp = property.FindPropertyRelative("achievementAsset");
         SerializedProperty achievementNameProp = property.FindPropertyRelative("achievementName");
 
         EditorGUI.BeginProperty(position, label, property);
 
         EditorGUI.BeginChangeCheck();
-        CRAchievementBaseDefinitionAsset newAchievement = (CRAchievementBaseDefinitionAsset)EditorGUI.ObjectField(position, label, achievementAssetProp.objectReferenceValue, typeof(CRAchievementBaseDefinitionAsset), false);
+        CRAchievementBaseDefinition newAchievement = (CRAchievementBaseDefinition)EditorGUI.ObjectField(position, label, achievementAssetProp.objectReferenceValue, typeof(CRAchievementBaseDefinition), false);
         if (EditorGUI.EndChangeCheck())
         {
             achievementAssetProp.objectReferenceValue = newAchievement;
@@ -23,6 +22,5 @@ public class CRAchievementBaseDefinitionReferenceDrawer : PropertyDrawer
         }
 
         EditorGUI.EndProperty();
-#endif
     }
 }
