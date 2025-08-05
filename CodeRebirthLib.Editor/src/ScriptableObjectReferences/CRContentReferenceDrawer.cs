@@ -55,9 +55,18 @@ public class CRContentReferenceDrawer : PropertyDrawer
         CRContentDefinition newAsset = (CRContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.ContentType, false);
         if (EditorGUI.EndChangeCheck())
         {
-            string newName = reference.GetEntityName(newAsset);
-            reference.assetGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(newAsset)).ToString();
-            reference.entityName = newName;
+            if (newAsset) 
+            {
+                string newName = reference.GetEntityName(newAsset);
+                reference.assetGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(newAsset)).ToString();
+                reference.entityName = newName;
+            } 
+            else 
+            {
+                reference.assetGUID = string.Empty;
+                reference.entityName = string.Empty;
+            }
+            
         }
 
         EditorGUI.EndProperty();
