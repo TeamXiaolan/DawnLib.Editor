@@ -33,6 +33,7 @@ public class CRContentReferenceDrawer : PropertyDrawer
             var constructor = referenceType.GetConstructor([typeof(string)]);
             reference = constructor.Invoke(new object[] { string.Empty }) as CRContentReference;
             property.managedReferenceValue = reference;
+            property.serializedObject.ApplyModifiedProperties();
         }
         EditorGUI.BeginProperty(position, label, property);
 
@@ -56,18 +57,20 @@ public class CRContentReferenceDrawer : PropertyDrawer
         CRContentDefinition newAsset = (CRContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.ContentType, false);
         if (EditorGUI.EndChangeCheck())
         {
-            if (newAsset) 
+            if (newAsset)
             {
                 string newName = reference.GetEntityName(newAsset);
                 reference.assetGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(newAsset)).ToString();
                 reference.entityName = newName;
-            } 
-            else 
+            }
+            else
             {
                 reference.assetGUID = string.Empty;
                 reference.entityName = string.Empty;
             }
             
+            property.managedReferenceValue = reference;
+            property.serializedObject.ApplyModifiedProperties();
         }
 
         EditorGUI.EndProperty();
