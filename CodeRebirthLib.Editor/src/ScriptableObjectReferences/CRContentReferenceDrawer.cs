@@ -12,12 +12,12 @@ using CodeRebirthLib.ContentManagement.Weathers;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 
-[CustomPropertyDrawer(typeof(CRAchievementReference), true)]
-[CustomPropertyDrawer(typeof(CREnemyReference), true)]
-[CustomPropertyDrawer(typeof(CRItemReference), true)]
-[CustomPropertyDrawer(typeof(CRMapObjectReference), true)]
-[CustomPropertyDrawer(typeof(CRUnlockableReference), true)]
-[CustomPropertyDrawer(typeof(CRWeatherReference), true)]
+[CustomPropertyDrawer(typeof(CRAchievementReference))]
+[CustomPropertyDrawer(typeof(CREnemyReference))]
+[CustomPropertyDrawer(typeof(CRItemReference))]
+[CustomPropertyDrawer(typeof(CRMapObjectReference))]
+[CustomPropertyDrawer(typeof(CRUnlockableReference))]
+[CustomPropertyDrawer(typeof(CRWeatherReference))]
 public class CRContentReferenceDrawer : PropertyDrawer
 {
     private static Dictionary<string, string> mappedGuids = new();
@@ -32,7 +32,6 @@ public class CRContentReferenceDrawer : PropertyDrawer
             var constructor = referenceType.GetConstructor([typeof(string)]);
             reference = constructor.Invoke(new object[] { string.Empty }) as CRContentReference;
             property.managedReferenceValue = reference;
-            return; 
         }
         EditorGUI.BeginProperty(position, label, property);
 
