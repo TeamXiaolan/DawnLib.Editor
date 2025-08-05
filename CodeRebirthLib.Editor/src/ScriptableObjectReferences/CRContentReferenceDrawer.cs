@@ -20,6 +20,7 @@ namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 [CustomPropertyDrawer(typeof(CRWeatherReference))]
 public class CRContentReferenceDrawer : PropertyDrawer
 {
+    // todo: update this if an asset moves
     private static Dictionary<string, string> mappedGuids = new();
     
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
