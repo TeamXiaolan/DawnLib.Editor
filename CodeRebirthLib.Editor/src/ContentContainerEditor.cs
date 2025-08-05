@@ -30,16 +30,16 @@ public class ContentContainerEditor : UnityEditor.Editor {
 			List<CRMapObjectDefinition> mapObjects = FindAssetsByType<CRMapObjectDefinition>().ToList();
 			foreach(AssetBundleData bundleData in content.assetBundles) {
 				Debug.Log($"migrating: {bundleData.configName}");
-				DoMigrations(bundleData.enemies, enemies, () => new CREnemyReference(""), (data, it) => data.enemyReference = it);
-				DoMigrations(bundleData.unlockables, unlockables, () => new CRUnlockableReference(""), (data, it) => data.unlockableReference = it);
-				DoMigrations(bundleData.weathers, weathers, () => new CRWeatherReference(""), (data, it) => data.weatherReference = it);
-				DoMigrations(bundleData.items, items, () => new CRItemReference(""), (data, it) => data.itemReference = it);
-				DoMigrations(bundleData.mapObjects, items, () => new CRMapObjectReference(""), (data, it) => data.mapObjectReference = it);
+				DoMigrations(bundleData.enemies, enemies, () => new CREnemyReference(""));
+				DoMigrations(bundleData.unlockables, unlockables, () => new CRUnlockableReference(""));
+				DoMigrations(bundleData.weathers, weathers, () => new CRWeatherReference(""));
+				DoMigrations(bundleData.items, items, () => new CRItemReference(""));
+				DoMigrations(bundleData.mapObjects, items, () => new CRMapObjectReference(""));
 			}
 		}
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback, Action<TEntity, TRef> setter) where TEntity : EntityData where TDef : CRContentDefinition where TRef : CRContentReference {
+	public static void DoMigrations<TEntity, TDef, TRef>(List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference {
 		foreach(TEntity data in entityDataList) {
 			if(!string.IsNullOrEmpty(data.EntityName)) continue; // already migrated
 
@@ -47,7 +47,7 @@ public class ContentContainerEditor : UnityEditor.Editor {
 			TRef reference = newCallback();
 			reference.entityName = def.EntityNameReference;
 			reference.assetGUID = guid;
-			setter(data, reference);
+			data._reference = reference;
 		}
 	}
 	
