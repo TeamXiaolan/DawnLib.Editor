@@ -25,6 +25,7 @@ public class ContentContainerEditor : UnityEditor.Editor {
 		if(GUILayout.Button("Migrate entityName -> references")) {
 			Debug.Log("beginning migration");
 			fails.Clear();
+			ClearConsole();
 			
 			List<CREnemyDefinition> enemies = FindAssetsByType<CREnemyDefinition>().ToList();
 			List<CRWeatherDefinition> weathers = FindAssetsByType<CRWeatherDefinition>().ToList();
@@ -45,11 +46,17 @@ public class ContentContainerEditor : UnityEditor.Editor {
 			}
 
 			foreach((AssetBundleData bundleData, List<string> fails) in fails) {
-				Debug.LogError($"Bundle '{bundleData.configName}' has {fails.Count} error(s) that will have to be referenced manually: {string.Join(", ", fails)}");
+				Debug.LogError($"Bundle '{bundleData.assetBundleName}' has {fails.Count} error(s) that will have to be referenced manually: {string.Join(", ", fails)}");
 			}
 
 			EditorUtility.ClearProgressBar();
 		}
+	}
+
+	static void ClearConsole() {
+		var logEntries = System.Type.GetType("UnityEditor.LogEntries,UnityEditor.dll");
+		var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+		clearMethod.Invoke(null, null);
 	}
 
 	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference {
@@ -65,7 +72,7 @@ public class ContentContainerEditor : UnityEditor.Editor {
 		}
 	}
 	
-	public static bool TryGetMigration<T>(AssetBundleData bundleData, List<T> definitions, EntityData data, out string guid, out T definition) where T : CRContentDefinition {
+	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRContentDefinition where TEntity : EntityData {
 		guid = "";
 		definition = null;
 		try {
@@ -74,7 +81,7 @@ public class ContentContainerEditor : UnityEditor.Editor {
 			if(!fails.TryGetValue(bundleData, out List<string> failList)) {
 				failList = [];
 			}
-			failList.Add(data.entityName);
+			failList.Add($"{data.entityName} ({typeof(TEntity).Name})");
 			fails[bundleData] = failList;
 			return false;
 		}
