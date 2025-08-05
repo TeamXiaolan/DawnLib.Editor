@@ -2,38 +2,63 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using CodeRebirthLib.ContentManagement;
+using CodeRebirthLib.ContentManagement.Achievements;
+using System.Reflection;
+using CodeRebirthLib.ContentManagement.Items;
+using CodeRebirthLib.ContentManagement.Enemies;
+using CodeRebirthLib.ContentManagement.MapObjects;
+using CodeRebirthLib.ContentManagement.Unlockables;
+using CodeRebirthLib.ContentManagement.Weathers;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
-[CustomPropertyDrawer(typeof(CRContentReference))]
-public class CRContentReferenceDrawer : PropertyDrawer {
-    static Dictionary<string, string> mappedGuids = new Dictionary<string, string>();
+
+[CustomPropertyDrawer(typeof(CRAchievementReference), true)]
+[CustomPropertyDrawer(typeof(CREnemyReference), true)]
+[CustomPropertyDrawer(typeof(CRItemReference), true)]
+[CustomPropertyDrawer(typeof(CRMapObjectReference), true)]
+[CustomPropertyDrawer(typeof(CRUnlockableReference), true)]
+[CustomPropertyDrawer(typeof(CRWeatherReference), true)]
+public class CRContentReferenceDrawer : PropertyDrawer
+{
+    private static Dictionary<string, string> mappedGuids = new();
     
-    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label) {
-        CRContentReference reference = (CRContentReference)property.managedReferenceValue;
-        SerializedProperty guidProp = property.FindPropertyRelative("_assetGUID");
-        SerializedProperty nameProp = property.FindPropertyRelative("entityName");
-        
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        CRContentReference? reference = (CRContentReference)property.managedReferenceValue;
+        if (reference == null)
+        {
+            var fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.propertyPath.Split(".")[0], BindingFlags.NonPublic | BindingFlags.Instance);
+            var referenceType = fieldInfo.FieldType.GenericTypeArguments[0];
+            var constructor = referenceType.GetConstructor([typeof(string)]);
+            reference = constructor.Invoke(new object[] { string.Empty }) as CRContentReference;
+            property.managedReferenceValue = reference;
+            return; 
+        }
         EditorGUI.BeginProperty(position, label, property);
 
-        Object oldAsset = null;
-        if(guidProp.stringValue != null) {
-            string guid = guidProp.stringValue;
-            if(!mappedGuids.TryGetValue(guid, out string path)) {
+        Object? oldAsset = null;
+        if (reference.assetGUID != null)
+        {
+            string guid = reference.assetGUID;
+            if (!mappedGuids.TryGetValue(guid, out string path))
+            {
                 path = AssetDatabase.GUIDToAssetPath(guid);
                 mappedGuids[guid] = path;
             }
 
-            if(!string.IsNullOrEmpty(path)) {
+            if (!string.IsNullOrEmpty(path))
+            {
                 oldAsset = AssetDatabase.LoadAssetAtPath<CRContentDefinition>(path);
             }
         }
         
         EditorGUI.BeginChangeCheck();
         CRContentDefinition newAsset = (CRContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.ContentType, false);
-        if (EditorGUI.EndChangeCheck()) {
+        if (EditorGUI.EndChangeCheck())
+        {
             string newName = reference.GetEntityName(newAsset);
-            guidProp.stringValue = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(newAsset)).ToString();
-            nameProp.stringValue = newName;
+            reference.assetGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(newAsset)).ToString();
+            reference.entityName = newName;
         }
 
         EditorGUI.EndProperty();
