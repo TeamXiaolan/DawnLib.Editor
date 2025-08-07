@@ -35,6 +35,7 @@ public class CRContentReferenceDrawer : PropertyDrawer
             property.managedReferenceValue = reference;
             EditorUtility.SetDirty(property.serializedObject.targetObject);
             property.serializedObject.ApplyModifiedProperties();
+			property.serializedObject.Update();
         }
         EditorGUI.BeginProperty(position, label, property);
 
@@ -69,10 +70,11 @@ public class CRContentReferenceDrawer : PropertyDrawer
                 reference.assetGUID = string.Empty;
                 reference.entityName = string.Empty;
             }
-            
+
             property.managedReferenceValue = reference;
             EditorUtility.SetDirty(property.serializedObject.targetObject);
             property.serializedObject.ApplyModifiedProperties();
+			property.serializedObject.Update();
         }
 
         EditorGUI.EndProperty();
