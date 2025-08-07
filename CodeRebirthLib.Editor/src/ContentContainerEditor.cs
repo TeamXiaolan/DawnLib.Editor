@@ -15,18 +15,21 @@ using Object = UnityEngine.Object;
 namespace CodeRebirthLib.Editor;
 
 [CustomEditor(typeof(ContentContainer))]
-public class ContentContainerEditor : UnityEditor.Editor {
+public class ContentContainerEditor : UnityEditor.Editor
+{
 	static Dictionary<AssetBundleData, List<string>> fails = [];
 	
-	public override void OnInspectorGUI() {
+	public override void OnInspectorGUI()
+	{
 		base.OnInspectorGUI();
 
 		ContentContainer content = (ContentContainer)target;
-		if(GUILayout.Button("Migrate entityName -> references")) {
+		if (GUILayout.Button("Migrate entityName -> references"))
+		{
 			Debug.Log("beginning migration");
 			fails.Clear();
 			ClearConsole();
-			
+
 			List<CREnemyDefinition> enemies = FindAssetsByType<CREnemyDefinition>().ToList();
 			List<CRWeatherDefinition> weathers = FindAssetsByType<CRWeatherDefinition>().ToList();
 			List<CRUnlockableDefinition> unlockables = FindAssetsByType<CRUnlockableDefinition>().ToList();
@@ -34,7 +37,8 @@ public class ContentContainerEditor : UnityEditor.Editor {
 			List<CRMapObjectDefinition> mapObjects = FindAssetsByType<CRMapObjectDefinition>().ToList();
 			int totalBundleData = content.assetBundles.Count;
 			int completedBundles = 0;
-			foreach(AssetBundleData bundleData in content.assetBundles) {
+			foreach (AssetBundleData bundleData in content.assetBundles)
+			{
 				EditorUtility.DisplayProgressBar("Migrating", $"{completedBundles}/{totalBundleData}: {bundleData.configName}", (float)completedBundles / totalBundleData);
 				Debug.Log($"migrating: {bundleData.configName}");
 				DoMigrations(bundleData, bundleData.enemies, enemies, () => new CREnemyReference(""));
@@ -45,25 +49,34 @@ public class ContentContainerEditor : UnityEditor.Editor {
 				completedBundles++;
 			}
 
-			foreach((AssetBundleData bundleData, List<string> fails) in fails) {
+			foreach ((AssetBundleData bundleData, List<string> fails) in fails)
+			{
 				Debug.LogError($"Bundle '{bundleData.assetBundleName}' has {fails.Count} error(s) that will have to be referenced manually: {string.Join(", ", fails)}");
 			}
 
 			EditorUtility.ClearProgressBar();
+			EditorUtility.SetDirty(target);
+			serializedObject.ApplyModifiedProperties();
+			serializedObject.Update();
 		}
 	}
 
-	static void ClearConsole() {
+	static void ClearConsole()
+	{
 		var logEntries = System.Type.GetType("UnityEditor.LogEntries,UnityEditor.dll");
 		var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
 		clearMethod.Invoke(null, null);
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference {
-		foreach(TEntity data in entityDataList) {
-			if(!string.IsNullOrEmpty(data.EntityName)) continue; // already migrated
+	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference
+	{
+		foreach (TEntity data in entityDataList)
+		{
+			if (!string.IsNullOrEmpty(data.EntityName))
+				continue; // already migrated
 
-			if(!TryGetMigration(bundleData, definitions, data, out string guid, out TDef def)) continue;
+			if (!TryGetMigration(bundleData, definitions, data, out string guid, out TDef def))
+				continue;
 			
 			TRef reference = newCallback();
 			reference.entityName = def.EntityNameReference;
@@ -72,13 +85,18 @@ public class ContentContainerEditor : UnityEditor.Editor {
 		}
 	}
 	
-	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRContentDefinition where TEntity : EntityData {
+	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRContentDefinition where TEntity : EntityData
+	{
 		guid = "";
 		definition = null;
-		try {
+		try
+		{
 			definition = definitions.First(it => string.Equals(it.EntityNameReference, data.entityName, StringComparison.InvariantCultureIgnoreCase));
-		} catch(InvalidOperationException exception) {
-			if(!fails.TryGetValue(bundleData, out List<string> failList)) {
+		}
+		catch (InvalidOperationException exception)
+		{
+			if (!fails.TryGetValue(bundleData, out List<string> failList))
+			{
 				failList = [];
 			}
 			failList.Add($"{data.entityName} ({typeof(TEntity).Name})");
@@ -91,12 +109,15 @@ public class ContentContainerEditor : UnityEditor.Editor {
 		return true;
 	}
 	
-	public static IEnumerable<T> FindAssetsByType<T>() where T : Object {
+	public static IEnumerable<T> FindAssetsByType<T>() where T : Object
+	{
 		var guids = AssetDatabase.FindAssets($"t:{typeof(T)}");
-		foreach (var t in guids) {
+		foreach (var t in guids)
+		{
 			var assetPath = AssetDatabase.GUIDToAssetPath(t);
 			var asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
-			if (asset != null) {
+			if (asset != null)
+			{
 				yield return asset;
 			}
 		}

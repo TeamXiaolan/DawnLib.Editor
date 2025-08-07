@@ -33,6 +33,7 @@ public class CRContentReferenceDrawer : PropertyDrawer
             var constructor = referenceType.GetConstructor([typeof(string)]);
             reference = constructor.Invoke(new object[] { string.Empty }) as CRContentReference;
             property.managedReferenceValue = reference;
+            EditorUtility.SetDirty(property.serializedObject.targetObject);
             property.serializedObject.ApplyModifiedProperties();
         }
         EditorGUI.BeginProperty(position, label, property);
@@ -70,6 +71,7 @@ public class CRContentReferenceDrawer : PropertyDrawer
             }
             
             property.managedReferenceValue = reference;
+            EditorUtility.SetDirty(property.serializedObject.targetObject);
             property.serializedObject.ApplyModifiedProperties();
         }
 
