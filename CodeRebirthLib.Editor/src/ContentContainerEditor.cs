@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CodeRebirthLib.AssetManagement;
-using CodeRebirthLib.ContentManagement;
-using CodeRebirthLib.ContentManagement.Enemies;
-using CodeRebirthLib.ContentManagement.Items;
-using CodeRebirthLib.ContentManagement.MapObjects;
-using CodeRebirthLib.ContentManagement.Unlockables;
-using CodeRebirthLib.ContentManagement.Weathers;
+using CodeRebirthLib.CRMod;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -41,11 +35,11 @@ public class ContentContainerEditor : UnityEditor.Editor
 			{
 				EditorUtility.DisplayProgressBar("Migrating", $"{completedBundles}/{totalBundleData}: {bundleData.configName}", (float)completedBundles / totalBundleData);
 				Debug.Log($"migrating: {bundleData.configName}");
-				DoMigrations(bundleData, bundleData.enemies, enemies, () => new CREnemyReference(""));
-				DoMigrations(bundleData, bundleData.unlockables, unlockables, () => new CRUnlockableReference(""));
-				DoMigrations(bundleData, bundleData.weathers, weathers, () => new CRWeatherReference(""));
-				DoMigrations(bundleData, bundleData.items, items, () => new CRItemReference(""));
-				DoMigrations(bundleData, bundleData.mapObjects, mapObjects, () => new CRMapObjectReference(""));
+				DoMigrations(bundleData, bundleData.enemies, enemies, () => new CREnemyReference());
+				DoMigrations(bundleData, bundleData.unlockables, unlockables, () => new CRUnlockableReference());
+				DoMigrations(bundleData, bundleData.weathers, weathers, () => new CRWeatherReference());
+				DoMigrations(bundleData, bundleData.items, items, () => new CRItemReference());
+				DoMigrations(bundleData, bundleData.mapObjects, mapObjects, () => new CRMapObjectReference());
 				completedBundles++;
 			}
 
@@ -68,18 +62,18 @@ public class ContentContainerEditor : UnityEditor.Editor
 		clearMethod.Invoke(null, null);
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference
+	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference 
 	{
-		foreach (TEntity data in entityDataList)
+		foreach(TEntity data in entityDataList) 
 		{
-			if (!string.IsNullOrEmpty(data.EntityName))
+			if(data.Key != null) 
 				continue; // already migrated
 
 			if (!TryGetMigration(bundleData, definitions, data, out string guid, out TDef def))
 				continue;
 			
 			TRef reference = newCallback();
-			reference.entityName = def.EntityNameReference;
+			reference.Key = def.Key;
 			reference.assetGUID = guid;
 			data._reference = reference;
 		}

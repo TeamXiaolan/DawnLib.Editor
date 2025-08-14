@@ -1,14 +1,8 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using CodeRebirthLib.ContentManagement;
-using CodeRebirthLib.ContentManagement.Achievements;
+using CodeRebirthLib.CRMod;
 using System.Reflection;
-using CodeRebirthLib.ContentManagement.Items;
-using CodeRebirthLib.ContentManagement.Enemies;
-using CodeRebirthLib.ContentManagement.MapObjects;
-using CodeRebirthLib.ContentManagement.Unlockables;
-using CodeRebirthLib.ContentManagement.Weathers;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 
@@ -40,7 +34,8 @@ public class CRContentReferenceDrawer : PropertyDrawer
         EditorGUI.BeginProperty(position, label, property);
 
         Object? oldAsset = null;
-        if (reference.assetGUID != null)
+        
+        if (reference.Key != null)
         {
             string guid = reference.assetGUID;
             if (!mappedGuids.TryGetValue(guid, out string path))
@@ -56,19 +51,18 @@ public class CRContentReferenceDrawer : PropertyDrawer
         }
         
         EditorGUI.BeginChangeCheck();
-        CRContentDefinition newAsset = (CRContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.ContentType, false);
+        CRContentDefinition newAsset = (CRContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.Type, false);
         if (EditorGUI.EndChangeCheck())
         {
             if (newAsset)
             {
-                string newName = reference.GetEntityName(newAsset);
                 reference.assetGUID = AssetDatabase.GUIDFromAssetPath(AssetDatabase.GetAssetPath(newAsset)).ToString();
-                reference.entityName = newName;
+                reference.Key = newAsset.Key;
             }
             else
             {
                 reference.assetGUID = string.Empty;
-                reference.entityName = string.Empty;
+                reference.Key = null;
             }
 
             property.managedReferenceValue = reference;

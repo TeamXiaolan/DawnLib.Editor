@@ -1,4 +1,4 @@
-﻿using CodeRebirthLib.ConfigManagement;
+﻿using CodeRebirthLib.CRMod;
 using UnityEditor;
 using UnityEngine;
 
