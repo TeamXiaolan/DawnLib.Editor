@@ -24,22 +24,22 @@ public class ContentContainerEditor : UnityEditor.Editor
 			fails.Clear();
 			ClearConsole();
 
-			List<CREnemyDefinition> enemies = FindAssetsByType<CREnemyDefinition>().ToList();
-			List<CRWeatherDefinition> weathers = FindAssetsByType<CRWeatherDefinition>().ToList();
-			List<CRUnlockableDefinition> unlockables = FindAssetsByType<CRUnlockableDefinition>().ToList();
-			List<CRItemDefinition> items = FindAssetsByType<CRItemDefinition>().ToList();
-			List<CRMapObjectDefinition> mapObjects = FindAssetsByType<CRMapObjectDefinition>().ToList();
+			List<CRMEnemyDefinition> enemies = FindAssetsByType<CRMEnemyDefinition>().ToList();
+			List<CRMWeatherDefinition> weathers = FindAssetsByType<CRMWeatherDefinition>().ToList();
+			List<CRMUnlockableDefinition> unlockables = FindAssetsByType<CRMUnlockableDefinition>().ToList();
+			List<CRMItemDefinition> items = FindAssetsByType<CRMItemDefinition>().ToList();
+			List<CRMMapObjectDefinition> mapObjects = FindAssetsByType<CRMMapObjectDefinition>().ToList();
 			int totalBundleData = content.assetBundles.Count;
 			int completedBundles = 0;
 			foreach (AssetBundleData bundleData in content.assetBundles)
 			{
 				EditorUtility.DisplayProgressBar("Migrating", $"{completedBundles}/{totalBundleData}: {bundleData.configName}", (float)completedBundles / totalBundleData);
 				Debug.Log($"migrating: {bundleData.configName}");
-				DoMigrations(bundleData, bundleData.enemies, enemies, () => new CREnemyReference());
-				DoMigrations(bundleData, bundleData.unlockables, unlockables, () => new CRUnlockableReference());
-				DoMigrations(bundleData, bundleData.weathers, weathers, () => new CRWeatherReference());
-				DoMigrations(bundleData, bundleData.items, items, () => new CRItemReference());
-				DoMigrations(bundleData, bundleData.mapObjects, mapObjects, () => new CRMapObjectReference());
+				DoMigrations(bundleData, bundleData.enemies, enemies, () => new CRMEnemyReference());
+				DoMigrations(bundleData, bundleData.unlockables, unlockables, () => new CRMUnlockableReference());
+				DoMigrations(bundleData, bundleData.weathers, weathers, () => new CRMWeatherReference());
+				DoMigrations(bundleData, bundleData.items, items, () => new CRMItemReference());
+				DoMigrations(bundleData, bundleData.mapObjects, mapObjects, () => new CRMMapObjectReference());
 				completedBundles++;
 			}
 
@@ -62,7 +62,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 		clearMethod.Invoke(null, null);
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRContentDefinition where TRef : CRContentReference 
+	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRMContentDefinition where TRef : CRMContentReference 
 	{
 		foreach(TEntity data in entityDataList) 
 		{
@@ -79,7 +79,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 		}
 	}
 	
-	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRContentDefinition where TEntity : EntityData
+	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRMContentDefinition where TEntity : EntityData
 	{
 		guid = "";
 		definition = null;

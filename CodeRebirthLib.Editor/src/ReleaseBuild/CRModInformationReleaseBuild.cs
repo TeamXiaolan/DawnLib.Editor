@@ -131,7 +131,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                 if (assetBundle == null)
                     continue;
 
-                CRWeatherDefinition[] weathers = assetBundle.LoadAllAssets<CRWeatherDefinition>();
+                CRMWeatherDefinition[] weathers = assetBundle.LoadAllAssets<CRMWeatherDefinition>();
                 if (weathers.Length > 0)
                 {
                     includeWR = true;

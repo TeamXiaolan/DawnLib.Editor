@@ -6,26 +6,26 @@ using System.Reflection;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 
-[CustomPropertyDrawer(typeof(CRAchievementReference))]
-[CustomPropertyDrawer(typeof(CREnemyReference))]
-[CustomPropertyDrawer(typeof(CRItemReference))]
-[CustomPropertyDrawer(typeof(CRMapObjectReference))]
-[CustomPropertyDrawer(typeof(CRUnlockableReference))]
-[CustomPropertyDrawer(typeof(CRWeatherReference))]
-public class CRContentReferenceDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(CRMAchievementReference))]
+[CustomPropertyDrawer(typeof(CRMEnemyReference))]
+[CustomPropertyDrawer(typeof(CRMItemReference))]
+[CustomPropertyDrawer(typeof(CRMMapObjectReference))]
+[CustomPropertyDrawer(typeof(CRMUnlockableReference))]
+[CustomPropertyDrawer(typeof(CRMWeatherReference))]
+public class CRMContentReferenceDrawer : PropertyDrawer
 {
     // todo: update this if an asset moves
     private static Dictionary<string, string> mappedGuids = new();
     
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        CRContentReference? reference = (CRContentReference)property.managedReferenceValue;
+        CRMContentReference? reference = (CRMContentReference)property.managedReferenceValue;
         if (reference == null)
         {
             var fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.propertyPath.Split(".")[0], BindingFlags.NonPublic | BindingFlags.Instance);
             var referenceType = fieldInfo.FieldType.GenericTypeArguments[0];
             var constructor = referenceType.GetConstructor([typeof(string)]);
-            reference = constructor.Invoke(new object[] { string.Empty }) as CRContentReference;
+            reference = constructor.Invoke(new object[] { string.Empty }) as CRMContentReference;
             property.managedReferenceValue = reference;
             EditorUtility.SetDirty(property.serializedObject.targetObject);
             property.serializedObject.ApplyModifiedProperties();
@@ -46,12 +46,12 @@ public class CRContentReferenceDrawer : PropertyDrawer
 
             if (!string.IsNullOrEmpty(path))
             {
-                oldAsset = AssetDatabase.LoadAssetAtPath<CRContentDefinition>(path);
+                oldAsset = AssetDatabase.LoadAssetAtPath<CRMContentDefinition>(path);
             }
         }
         
         EditorGUI.BeginChangeCheck();
-        CRContentDefinition newAsset = (CRContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.Type, false);
+        CRMContentDefinition newAsset = (CRMContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.Type, false);
         if (EditorGUI.EndChangeCheck())
         {
             if (newAsset)
