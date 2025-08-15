@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using CodeRebirthLib.CRMod;
-using System.Reflection;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 
@@ -16,26 +15,21 @@ public class CRMContentReferenceDrawer : PropertyDrawer
 {
     // todo: update this if an asset moves
     private static Dictionary<string, string> mappedGuids = new();
-    
+
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        CRMContentReference? reference = (CRMContentReference)property.managedReferenceValue;
+        var reference = GetReference(property);
+
         if (reference == null)
         {
-            var fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.propertyPath.Split(".")[0], BindingFlags.NonPublic | BindingFlags.Instance);
-            var referenceType = fieldInfo.FieldType.GenericTypeArguments[0];
-            var constructor = referenceType.GetConstructor([typeof(string)]);
-            reference = constructor.Invoke(new object[] { string.Empty }) as CRMContentReference;
-            property.managedReferenceValue = reference;
-            EditorUtility.SetDirty(property.serializedObject.targetObject);
-            property.serializedObject.ApplyModifiedProperties();
-			property.serializedObject.Update();
+            var type = this.fieldInfo.FieldType;
+            reference = (CRMContentReference)System.Activator.CreateInstance(type);
+            SetReference(property, reference);
         }
         EditorGUI.BeginProperty(position, label, property);
 
         Object? oldAsset = null;
-        
-        if (reference.Key != null)
+        if (!string.IsNullOrEmpty(reference.assetGUID))
         {
             string guid = reference.assetGUID;
             if (!mappedGuids.TryGetValue(guid, out string path))
@@ -49,7 +43,7 @@ public class CRMContentReferenceDrawer : PropertyDrawer
                 oldAsset = AssetDatabase.LoadAssetAtPath<CRMContentDefinition>(path);
             }
         }
-        
+
         EditorGUI.BeginChangeCheck();
         CRMContentDefinition newAsset = (CRMContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.Type, false);
         if (EditorGUI.EndChangeCheck())
@@ -65,12 +59,32 @@ public class CRMContentReferenceDrawer : PropertyDrawer
                 reference.Key = null;
             }
 
-            property.managedReferenceValue = reference;
-            EditorUtility.SetDirty(property.serializedObject.targetObject);
-            property.serializedObject.ApplyModifiedProperties();
-			property.serializedObject.Update();
+            SetReference(property, reference);
         }
 
         EditorGUI.EndProperty();
+    }
+
+    static CRMContentReference? GetReference(SerializedProperty property)
+    {
+        if (property.propertyType == SerializedPropertyType.ManagedReference)
+            return property.managedReferenceValue as CRMContentReference;
+
+        return property.boxedValue as CRMContentReference;
+    }
+
+    static void SetReference(SerializedProperty property, CRMContentReference value)
+    {
+        if (property.propertyType == SerializedPropertyType.ManagedReference)
+        {
+            property.managedReferenceValue = value;
+        }
+        else
+        {
+            property.boxedValue = value;
+        }
+        property.serializedObject.ApplyModifiedProperties();
+        property.serializedObject.Update();
+        EditorUtility.SetDirty(property.serializedObject.targetObject);
     }
 }
