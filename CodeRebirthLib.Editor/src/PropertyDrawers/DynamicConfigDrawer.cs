@@ -14,17 +14,14 @@ public class DynamicConfigDrawer : PropertyDrawer
         float lineHeight = EditorGUIUtility.singleLineHeight;
         float spacing = EditorGUIUtility.standardVerticalSpacing;
 
-        // Calculate rects for each line.
         Rect settingNameRect = new Rect(position.x, position.y, position.width, lineHeight);
         Rect typeRect = new Rect(position.x, position.y + (lineHeight + spacing), position.width, lineHeight);
         Rect defaultRect = new Rect(position.x, position.y + (lineHeight + spacing) * 2, position.width, lineHeight);
         Rect descRect = new Rect(position.x, position.y + (lineHeight + spacing) * 3, position.width, lineHeight);
 
-        // Draw key and type fields.
         EditorGUI.PropertyField(settingNameRect, property.FindPropertyRelative("settingName"), new GUIContent("settingName"));
         EditorGUI.PropertyField(typeRect, property.FindPropertyRelative("DynamicConfigType"), new GUIContent("Type"));
 
-        // Depending on the type, show the correct default value field.
         SerializedProperty dynamicTypeProp = property.FindPropertyRelative("DynamicConfigType");
         CRDynamicConfigType configType = (CRDynamicConfigType)dynamicTypeProp.enumValueIndex;
         switch (configType)

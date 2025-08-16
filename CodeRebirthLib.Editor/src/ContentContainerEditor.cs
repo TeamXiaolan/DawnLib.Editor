@@ -19,8 +19,9 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 		ContentContainer content = (ContentContainer)target;
 
-		if(GUILayout.Button("Generate 'namespaced_keys.json'")) {
-			
+		if (GUILayout.Button("Generate 'namespaced_keys.json'"))
+		{
+			// needs a
 		}
 		
 		if (GUILayout.Button("Migrate entityName -> references"))
