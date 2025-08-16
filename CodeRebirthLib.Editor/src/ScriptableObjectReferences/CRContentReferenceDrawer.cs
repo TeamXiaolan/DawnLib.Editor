@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using CodeRebirthLib.CRMod;
@@ -20,26 +18,17 @@ public class CRMContentReferenceDrawer : PropertyDrawer
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var reference = GetReference(property);
-
-        if (reference == null)
+        if (property.managedReferenceValue is not CRMContentReference reference)
         {
-            Debug.Log($"filling in null reference for {property.propertyPath}. fieldInfo.fieldType.name = {fieldInfo.FieldType.Name}");
-            
             var referenceType = fieldInfo.FieldType;
-            Debug.Log($"referenceType = {referenceType.Name}");
-            if(referenceType.IsGenericType && referenceType.GetGenericTypeDefinition() == typeof(List<>)) {
+            if (referenceType.IsGenericType && referenceType.GetGenericTypeDefinition() == typeof(List<>))
+            {
                 referenceType = referenceType.GenericTypeArguments[0];
-                Debug.Log($"referenceType = {referenceType.Name}");
             }
-            
+
             var constructor = referenceType.GetConstructor([]);
-            Debug.Log($"typeName = {referenceType.Name}. constructor = {constructor != null}");
             reference = (CRMContentReference)constructor.Invoke([]);
-            property.managedReferenceValue = reference;
-            EditorUtility.SetDirty(property.serializedObject.targetObject);
-            property.serializedObject.ApplyModifiedProperties();
-            property.serializedObject.Update();
+            SetReference(property, reference);
         }
         EditorGUI.BeginProperty(position, label, property);
 
@@ -80,26 +69,9 @@ public class CRMContentReferenceDrawer : PropertyDrawer
         EditorGUI.EndProperty();
     }
 
-    static CRMContentReference? GetReference(SerializedProperty property)
-    {
-        if (property.propertyType == SerializedPropertyType.ManagedReference)
-            return property.managedReferenceValue as CRMContentReference;
-
-        return property.boxedValue as CRMContentReference;
-    }
-
     static void SetReference(SerializedProperty property, CRMContentReference value)
     {
-        if (property.propertyType == SerializedPropertyType.ManagedReference)
-        {
-            property.managedReferenceValue = value;
-        }
-        else
-        {
-            property.boxedValue = value;
-        }
-        property.serializedObject.ApplyModifiedProperties();
-        property.serializedObject.Update();
+        property.managedReferenceValue = value;
         EditorUtility.SetDirty(property.serializedObject.targetObject);
     }
 }

@@ -28,12 +28,17 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        var state = GetState(property);
+        if (fieldInfo.GetCustomAttributes(typeof(InspectorNameAttribute), true).FirstOrDefault() is InspectorNameAttribute inspectorName)
+        {
+            label = new GUIContent(inspectorName.displayName);
+        }
 
-        var options = EditorPrefsStringList.GetList("code_rebirth_lib_namespaces");
+        State state = GetState(property);
 
-        var target = property.serializedObject.targetObject;
-        var current = (NamespacedKey)fieldInfo.GetValue(target);
+        List<string> options = EditorPrefsStringList.GetList("code_rebirth_lib_namespaces");
+
+        Object target = property.serializedObject.targetObject;
+        NamespacedKey current = (NamespacedKey)fieldInfo.GetValue(target);
         int index = options.IndexOf(current._namespace);
 
         EditorGUI.BeginProperty(position, label, property);
@@ -152,9 +157,12 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         {
             currentKeyName = current._key;
         }
-        GUILayout.Label("Key");
-        GUILayout.TextArea(currentKeyName, EditorStyles.textField, GUILayout.ExpandHeight(true));
-
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label("Key", GUILayout.Width(EditorGUIUtility.labelWidth));
+        GUI.enabled = false;
+        GUILayout.TextArea(currentKeyName, EditorStyles.textField);
+        GUI.enabled = true;
+        EditorGUILayout.EndHorizontal();
         EditorGUI.EndProperty();
     }
 
@@ -167,7 +175,6 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             height += EditorGUIUtility.singleLineHeight;
             height += EditorGUIUtility.standardVerticalSpacing;
         }
-        height += EditorGUIUtility.singleLineHeight;
         return height;
     }
 }
