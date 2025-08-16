@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -23,10 +24,18 @@ public class CRMContentReferenceDrawer : PropertyDrawer
 
         if (reference == null)
         {
-            var fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.propertyPath.Split(".")[0], BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
-            var referenceType = fieldInfo.FieldType.GenericTypeArguments[0];
+            Debug.Log($"filling in null reference for {property.propertyPath}. fieldInfo.fieldType.name = {fieldInfo.FieldType.Name}");
+            
+            var referenceType = fieldInfo.FieldType;
+            Debug.Log($"referenceType = {referenceType.Name}");
+            if(referenceType.IsGenericType && referenceType.GetGenericTypeDefinition() == typeof(List<>)) {
+                referenceType = referenceType.GenericTypeArguments[0];
+                Debug.Log($"referenceType = {referenceType.Name}");
+            }
+            
             var constructor = referenceType.GetConstructor([]);
-            reference = constructor.Invoke([]) as CRMContentReference;
+            Debug.Log($"typeName = {referenceType.Name}. constructor = {constructor != null}");
+            reference = (CRMContentReference)constructor.Invoke([]);
             property.managedReferenceValue = reference;
             EditorUtility.SetDirty(property.serializedObject.targetObject);
             property.serializedObject.ApplyModifiedProperties();
@@ -51,7 +60,7 @@ public class CRMContentReferenceDrawer : PropertyDrawer
         }
 
         EditorGUI.BeginChangeCheck();
-        CRMContentDefinition newAsset = (CRMContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.Type, false);
+        CRMContentDefinition newAsset = (CRMContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.DefinitionType, false);
         if (EditorGUI.EndChangeCheck())
         {
             if (newAsset)

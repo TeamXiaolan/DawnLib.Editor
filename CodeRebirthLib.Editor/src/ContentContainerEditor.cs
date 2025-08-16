@@ -18,6 +18,11 @@ public class ContentContainerEditor : UnityEditor.Editor
 		base.OnInspectorGUI();
 
 		ContentContainer content = (ContentContainer)target;
+
+		if(GUILayout.Button("Generate 'namespaced_keys.json'")) {
+			
+		}
+		
 		if (GUILayout.Button("Migrate entityName -> references"))
 		{
 			Debug.Log("beginning migration");
@@ -62,7 +67,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 		clearMethod.Invoke(null, null);
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRMContentDefinition where TRef : CRMContentReference 
+	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRMContentDefinition where TRef : CRMContentReference, new()
 	{
 		foreach(TEntity data in entityDataList) 
 		{

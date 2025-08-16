@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CodeRebirthLib.CRMod;
 using UnityEditor;
 using UnityEngine;
 
@@ -76,9 +77,4 @@ public static class EditorPrefsStringList
             EditorPrefs.SetString(key, string.Join("|", list));
         }
     }
-}
-
-public class NamespacedKeyNameAttribute(string key) : PropertyAttribute
-{
-    public string Key = key;
 }
