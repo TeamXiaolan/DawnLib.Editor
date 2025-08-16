@@ -32,7 +32,6 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         var options = EditorPrefsStringList.GetList("code_rebirth_lib_namespaces");
 
-        // Read current value WITHOUT mutating during typing
         var target = property.serializedObject.targetObject;
         var current = (NamespacedKey)fieldInfo.GetValue(target);
         int index = options.IndexOf(current._namespace);
@@ -49,17 +48,17 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         int selectedIndex = state.addingNew ? displayOptions.Length - 1 : Mathf.Max(index, 0);
 
-        var dropdownRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        Rect dropdownRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
         int newIndex = EditorGUI.Popup(dropdownRect, label.text, selectedIndex, displayOptions);
 
         if (displayOptions[newIndex] == "<Add New>")
         {
             state.addingNew = true;
-            var textFieldRect = new Rect(position.x, position.y + EditorGUIUtility.singleLineHeight + 2, position.width, EditorGUIUtility.singleLineHeight);
+            Rect addNewTextField = new Rect(position.x, position.y + EditorGUIUtility.singleLineHeight + 2, position.width, EditorGUIUtility.singleLineHeight);
 
             EditorGUI.BeginChangeCheck();
             GUI.SetNextControlName("NSAddField");
-            state.customValue = EditorGUI.TextField(textFieldRect, state.customValue);
+            state.customValue = EditorGUI.TextField(addNewTextField, state.customValue);
             if (EditorGUI.EndChangeCheck())
             {
 
@@ -76,8 +75,11 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                             EditorPrefsStringList.AddToList("code_rebirth_lib_namespaces", value);
 
                         current._namespace = value;
+                        Undo.RecordObject(target, "Change Namespace");
                         fieldInfo.SetValue(target, current);
                         property.serializedObject.ApplyModifiedProperties();
+                        property.serializedObject.Update();
+                        EditorUtility.SetDirty(property.serializedObject.targetObject);
                         state.addingNew = false;
                         state.customValue = "";
                         GUI.FocusControl(null);
@@ -125,8 +127,11 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                 if (newNs != current._namespace)
                 {
                     current._namespace = newNs;
+                    Undo.RecordObject(target, "Change Namespace");
                     fieldInfo.SetValue(target, current);
                     property.serializedObject.ApplyModifiedProperties();
+                    property.serializedObject.Update();
+                    EditorUtility.SetDirty(property.serializedObject.targetObject);
                 }
             }
 
@@ -134,13 +139,36 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             state.customValue = "";
         }
 
+        property.serializedObject.Update();
+
+
+        EditorGUI.BeginChangeCheck();
+        string currentKeyName = string.Empty;
+        if (property.serializedObject.targetObject is CRMContentDefinition contentDefinition)
+        {
+            currentKeyName = contentDefinition.GetDefaultKey();
+        }
+        else
+        {
+            currentKeyName = current._key;
+        }
+        GUILayout.Label("Key");
+        GUILayout.TextArea(currentKeyName, EditorStyles.textField, GUILayout.ExpandHeight(true));
+
         EditorGUI.EndProperty();
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        var state = GetState(property);
-        return state.addingNew ? EditorGUIUtility.singleLineHeight * 2 + 2 : EditorGUIUtility.singleLineHeight;
+        float height = EditorGUIUtility.singleLineHeight;
+        height += EditorGUIUtility.standardVerticalSpacing;
+        if (GetState(property).addingNew)
+        {
+            height += EditorGUIUtility.singleLineHeight;
+            height += EditorGUIUtility.standardVerticalSpacing;
+        }
+        height += EditorGUIUtility.singleLineHeight;
+        return height;
     }
 }
 
