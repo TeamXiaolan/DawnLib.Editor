@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 using CodeRebirthLib.CRMod;
@@ -22,9 +23,14 @@ public class CRMContentReferenceDrawer : PropertyDrawer
 
         if (reference == null)
         {
-            var type = this.fieldInfo.FieldType;
-            reference = (CRMContentReference)System.Activator.CreateInstance(type);
-            SetReference(property, reference);
+            var fieldInfo = property.serializedObject.targetObject.GetType().GetField(property.propertyPath.Split(".")[0], BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+            var referenceType = fieldInfo.FieldType.GenericTypeArguments[0];
+            var constructor = referenceType.GetConstructor([]);
+            reference = constructor.Invoke([]) as CRMContentReference;
+            property.managedReferenceValue = reference;
+            EditorUtility.SetDirty(property.serializedObject.targetObject);
+            property.serializedObject.ApplyModifiedProperties();
+            property.serializedObject.Update();
         }
         EditorGUI.BeginProperty(position, label, property);
 
