@@ -20,11 +20,19 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 	private static readonly Regex NamespacedKeyRegex = new(@"[\n\t""`\[\]'-]");
 
-    internal static string NormalizeNamespacedKey(string input)
-    {
-        // The regex pattern matches: newline, tab, double quote, backtick, apostrophe, dash, [ or ].
-        return NamespacedKeyRegex.Replace(input.Replace(" ", ""), string.Empty);
-    }
+	internal static string NormalizeNamespacedKey(string input)
+	{
+		return NamespacedKeyRegex.Replace(input.Replace(" ", ""), string.Empty);
+	}
+
+	private static string ClassNameFromNamespace(string ns, string suffix)
+	{
+		var words = ns.Split('_');
+		for (int i = 0; i < words.Length; i++)
+			words[i] = words[i].Trim().ToCapitalized();
+
+		return string.Join("", words) + suffix;
+	}
 
 	public override void OnInspectorGUI()
 	{
@@ -40,129 +48,36 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<CRMItemDefinition> items = FindAssetsByType<CRMItemDefinition>().ToList();
 			List<CRMMapObjectDefinition> mapObjects = FindAssetsByType<CRMMapObjectDefinition>().ToList();
 
+			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			foreach (CRMEnemyDefinition definition in enemies)
+			void Build<TDef>(IEnumerable<TDef> defs, string suffix, string typeTag, Func<TDef, string> getEntityName, Func<TDef, NamespacedKey> getKey) where TDef : CRMContentDefinition
 			{
-				Debug.Log($"Checking definition: {definition.name}");
-
-				string[] words = definition.Key.Namespace.Split('_');
-				for (int i = 0; i < words.Length; i++)
+				foreach (var def in defs)
 				{
-					words[i].Trim();
-					words[i] = words[i].ToCapitalized();
-				}
-				string className = string.Join("", words);
-				className += "EnemyKeys";
+					Debug.Log($"Checking definition: {def.name}");
 
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CREnemyInfo" }
-					};
+					var className = ClassNameFromNamespace(getKey(def).Namespace, suffix);
+					if (!definitionsDict.TryGetValue(className, out var bucket))
+						definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
+
+					var csharpName = NormalizeNamespacedKey(getEntityName(def));
+					var nsKey = getKey(def).ToString();
+
+					bucket[csharpName] = nsKey;
+
+					Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
 				}
-				definitionsDict[className][NormalizeNamespacedKey(definition.EntityNameReference)] = definition.Key.ToString();
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(definition.EntityNameReference)}, with NamespacedKey: {definition.Key.ToString()}");
 			}
 
-			foreach (CRMWeatherDefinition definition in weathers)
-			{
-				Debug.Log($"Checking definition: {definition.name}");
+			Build(enemies,	 "EnemyKeys",		"CREnemyInfo",		d => d.EntityNameReference, d => d.Key);
+			Build(weathers,	"WeatherKeys",	  "CRWeatherInfo",	  d => d.EntityNameReference, d => d.Key);
+			Build(unlockables, "UnlockableItemKeys","CRUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
+			Build(items,	   "ItemKeys",		 "CRItemInfo",		 d => d.EntityNameReference, d => d.Key);
+			Build(mapObjects,  "MapObjectKeys",	"CRMapObjectInfo",	d => d.EntityNameReference, d => d.Key);
 
-				string[] words = definition.Key.Namespace.Split('_');
-				for (int i = 0; i < words.Length; i++)
-				{
-					words[i].Trim();
-					words[i] = words[i].ToCapitalized();
-				}
-				string className = string.Join("", words);
-				className += "WeatherKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRWeatherInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(definition.EntityNameReference)] = definition.Key.ToString();
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(definition.EntityNameReference)}, with NamespacedKey: {definition.Key.ToString()}");
-			}
-
-			foreach (CRMUnlockableDefinition definition in unlockables)
-			{
-				Debug.Log($"Checking definition: {definition.name}");
-
-				string[] words = definition.Key.Namespace.Split('_');
-				for (int i = 0; i < words.Length; i++)
-				{
-					words[i].Trim();
-					words[i] = words[i].ToCapitalized();
-				}
-				string className = string.Join("", words);
-				className += "UnlockableItemKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRUnlockableItemInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(definition.EntityNameReference)] = definition.Key.ToString();
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(definition.EntityNameReference)}, with NamespacedKey: {definition.Key.ToString()}");
-			}
-
-			foreach (CRMItemDefinition definition in items)
-			{
-				Debug.Log($"Checking definition: {definition.name}");
-
-				string[] words = definition.Key.Namespace.Split('_');
-				for (int i = 0; i < words.Length; i++)
-				{
-					words[i].Trim();
-					words[i] = words[i].ToCapitalized();
-				}
-				string className = string.Join("", words);
-				className += "ItemKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRItemInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(definition.EntityNameReference)] = definition.Key.ToString();
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(definition.EntityNameReference)}, with NamespacedKey: {definition.Key.ToString()}");
-			}
-
-			foreach (CRMMapObjectDefinition definition in mapObjects)
-			{
-				Debug.Log($"Checking definition: {definition.name}");
-
-				string[] words = definition.Key.Namespace.Split('_');
-				for (int i = 0; i < words.Length; i++)
-				{
-					words[i].Trim();
-					words[i] = words[i].ToCapitalized();
-				}
-				string className = string.Join("", words);
-				className += "MapObjectKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRMapObjectInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(definition.EntityNameReference)] = definition.Key.ToString();
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(definition.EntityNameReference)}, with NamespacedKey: {definition.Key.ToString()}");
-			}
-			string text = JsonConvert.SerializeObject(definitionsDict);
-			string outputPath = EditorUtility.SaveFilePanel($"NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
+			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
+			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
 			File.WriteAllText(outputPath, text);
 		}
 
@@ -176,99 +91,43 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			foreach (EnemyType enemyType in enemies)
+			void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, bool>? includePredicate = null)
 			{
-				if (enemyType.name.Contains("Obj"))
-					continue;
+				if (!definitionsDict.TryGetValue(className, out var bucket))
+					definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
-				Debug.Log($"Checking enemyType: {enemyType.enemyName}");
-
-				string className = "EnemyKeys";
-
-				if (!definitionsDict.ContainsKey(className))
+				foreach (var it in src)
 				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CREnemyInfo" }
-					};
+					if (includePredicate != null && !includePredicate(it))
+						continue;
+
+					string displayName = nameGetter(it);
+					Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
+
+					string csharpName = NormalizeNamespacedKey(displayName);
+					string nsKey = "lethal_company:" + NormalizeNamespacedKey(displayName.ToLowerInvariant().Replace(" ", "_"));
+
+					bucket[csharpName] = nsKey;
+
+					Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
 				}
-				definitionsDict[className][NormalizeNamespacedKey(enemyType.enemyName)] = "lethal_company:" + NormalizeNamespacedKey(enemyType.enemyName.ToLowerInvariant().Replace(" ", "_"));
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(enemyType.enemyName)}, with NamespacedKey: lethal_company:{NormalizeNamespacedKey(enemyType.enemyName.ToLowerInvariant().Replace(" ", "_"))}");
 			}
 
-			foreach (UnlockableItem unlockableItem in unlockablesList.unlockables)
-			{
-				Debug.Log($"Checking unlockableItem: {unlockableItem.unlockableName}");
+			BuildVanilla(enemies, "EnemyKeys", "CREnemyInfo",
+				enemyType => enemyType.enemyName,
+				enemyType => !enemyType.name.Contains("Obj", StringComparison.InvariantCultureIgnoreCase));
 
-				string className = "UnlockableItemKeys";
+			BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "CRUnlockableItemInfo", u => u.unlockableName);
 
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRUnlockableItemInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(unlockableItem.unlockableName)] = "lethal_company:" + NormalizeNamespacedKey(unlockableItem.unlockableName.ToLowerInvariant().Replace(" ", "_"));
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(unlockableItem.unlockableName)}, with NamespacedKey: lethal_company:{NormalizeNamespacedKey(unlockableItem.unlockableName.ToLowerInvariant().Replace(" ", "_"))}");
-			}
+			BuildVanilla(items, "ItemKeys", "CRItemInfo",
+				item => item.itemName,
+				item => !item.name.Contains("Obj", StringComparison.InvariantCultureIgnoreCase));
 
-			foreach (Item item in items)
-			{
-				if (item.name.Contains("Obj"))
-					continue;
+			BuildVanilla(levels, "MoonKeys", "CRMoonInfo", l => l.PlanetName);
+			BuildVanilla(dungeons, "DungeonKeys", "CRDungeonInfo", d => d.name);
 
-				Debug.Log($"Checking Item: {item.itemName}");
-
-				string className = "ItemKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRItemInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(item.itemName)] = "lethal_company:" + NormalizeNamespacedKey(item.itemName.ToLowerInvariant().Replace(" ", "_"));
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(item.itemName)}, with NamespacedKey: lethal_company:{NormalizeNamespacedKey(item.itemName.ToLowerInvariant().Replace(" ", "_"))}");
-			}
-
-			foreach (SelectableLevel level in levels)
-			{
-				Debug.Log($"Checking SelectableLevel: {level.PlanetName}");
-
-				string className = "MoonKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRMoonInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(level.PlanetName)] = "lethal_company:" + NormalizeNamespacedKey(level.PlanetName.ToLowerInvariant().Replace(" ", "_"));
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(level.PlanetName)}, with NamespacedKey: lethal_company:{NormalizeNamespacedKey(level.PlanetName.ToLowerInvariant().Replace(" ", "_"))}");
-			}
-
-			foreach (DungeonFlow dungeon in dungeons)
-			{
-				Debug.Log($"Checking Dungeon: {dungeon.name}");
-
-				string className = "DungeonKeys";
-
-				if (!definitionsDict.ContainsKey(className))
-				{
-					definitionsDict[className] = new()
-					{
-						{ "__type", "CRDungeonInfo" }
-					};
-				}
-				definitionsDict[className][NormalizeNamespacedKey(dungeon.name)] = "lethal_company:" + NormalizeNamespacedKey(dungeon.name.ToLowerInvariant().Replace(" ", "_"));
-				Debug.Log($"It has className: {className}, with C# name: {NormalizeNamespacedKey(dungeon.name)}, with NamespacedKey: lethal_company:{NormalizeNamespacedKey(dungeon.name.ToLowerInvariant().Replace(" ", "_"))}");
-			}
-
-			string text = JsonConvert.SerializeObject(definitionsDict);
-			string outputPath = EditorUtility.SaveFilePanel($"NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
+			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
+			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla_namespaced_keys", "json");
 			File.WriteAllText(outputPath, text);
 		}
 
@@ -283,8 +142,10 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<CRMUnlockableDefinition> unlockables = FindAssetsByType<CRMUnlockableDefinition>().ToList();
 			List<CRMItemDefinition> items = FindAssetsByType<CRMItemDefinition>().ToList();
 			List<CRMMapObjectDefinition> mapObjects = FindAssetsByType<CRMMapObjectDefinition>().ToList();
+
 			int totalBundleData = content.assetBundles.Count;
 			int completedBundles = 0;
+
 			foreach (AssetBundleData bundleData in content.assetBundles)
 			{
 				EditorUtility.DisplayProgressBar("Migrating", $"{completedBundles}/{totalBundleData}: {bundleData.configName}", (float)completedBundles / totalBundleData);
@@ -316,23 +177,26 @@ public class ContentContainerEditor : UnityEditor.Editor
 		clearMethod.Invoke(null, null);
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback) where TEntity : EntityData<TRef> where TDef : CRMContentDefinition where TRef : CRMContentReference, new()
+	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback)
+		where TEntity : EntityData<TRef>
+		where TDef : CRMContentDefinition
+		where TRef : CRMContentReference, new()
 	{
-		foreach(TEntity data in entityDataList) 
+		foreach (TEntity data in entityDataList)
 		{
-			if (!string.IsNullOrEmpty(data.Key.Key)) 
+			if (!string.IsNullOrEmpty(data.Key.Key))
 				continue; // already migrated
 
 			if (!TryGetMigration(bundleData, definitions, data, out string guid, out TDef def))
 				continue;
-			
+
 			TRef reference = newCallback();
 			reference.Key = def.Key;
 			reference.assetGUID = guid;
 			data._reference = reference;
 		}
 	}
-	
+
 	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRMContentDefinition where TEntity : EntityData
 	{
 		guid = "";
@@ -356,7 +220,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 		guid = AssetDatabase.GUIDFromAssetPath(path).ToString();
 		return true;
 	}
-	
+
 	public static IEnumerable<T> FindAssetsByType<T>() where T : Object
 	{
 		var guids = AssetDatabase.FindAssets($"t:{typeof(T)}");
