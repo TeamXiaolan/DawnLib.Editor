@@ -146,17 +146,27 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         property.serializedObject.Update();
 
-
         EditorGUI.BeginChangeCheck();
         string currentKeyName = string.Empty;
         if (property.serializedObject.targetObject is CRMContentDefinition contentDefinition)
         {
-            currentKeyName = contentDefinition.GetDefaultKey();
+            string defaultKey = contentDefinition.GetDefaultKey();
+            if (current._key != defaultKey)
+            {
+                Undo.RecordObject(target, "Change Key");
+                current._key = defaultKey;
+                fieldInfo.SetValue(target, current);
+                property.serializedObject.ApplyModifiedProperties();
+                EditorUtility.SetDirty(property.serializedObject.targetObject);
+            }
+
+            currentKeyName = defaultKey;
         }
         else
         {
             currentKeyName = current._key;
         }
+
         EditorGUILayout.BeginHorizontal();
         GUILayout.Label("Key", GUILayout.Width(EditorGUIUtility.labelWidth));
         GUI.enabled = false;
