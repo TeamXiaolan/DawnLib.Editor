@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using CodeRebirthLib.CRMod;
 using CodeRebirthLib.Utils;
@@ -18,11 +19,48 @@ public class ContentContainerEditor : UnityEditor.Editor
 {
 	static Dictionary<AssetBundleData, List<string>> fails = [];
 
-	private static readonly Regex NamespacedKeyRegex = new(@"[\n\t""`\[\]'-]");
+	private static readonly Regex NamespacedKeyRegex = new(@"[.\n\t""`\[\]'-]");
 
-	internal static string NormalizeNamespacedKey(string input)
+	private static readonly Dictionary<char, string> NumberWords = new()
 	{
-		return NamespacedKeyRegex.Replace(input.Replace(" ", ""), string.Empty);
+		{ '0', "Zero" },
+		{ '1', "One" },
+		{ '2', "Two" },
+		{ '3', "Three" },
+		{ '4', "Four" },
+		{ '5', "Five" },
+		{ '6', "Six" },
+		{ '7', "Seven" },
+		{ '8', "Eight" },
+		{ '9', "Nine" },
+	};
+
+	internal static string NormalizeNamespacedKey(string input, bool CSharpName)
+	{
+		if (string.IsNullOrEmpty(input))
+			return string.Empty;
+
+		string cleanedstring = NamespacedKeyRegex.Replace(input, string.Empty);
+
+		StringBuilder stringBuilder = new System.Text.StringBuilder(cleanedstring.Length);
+		foreach (char character in cleanedstring)
+		{
+			if (NumberWords.TryGetValue(character, out var word))
+				stringBuilder.Append(word);
+			else
+				stringBuilder.Append(character);
+		}
+
+		string result = stringBuilder.ToString();
+		if (CSharpName)
+		{
+			result = result.Replace(" ", "");
+		}
+		else
+		{
+			result = result.ToLowerInvariant().Replace(" ", "_");
+		}
+		return result.ToString();
 	}
 
 	private static string ClassNameFromNamespace(string ns, string suffix)
@@ -53,16 +91,16 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 			void Build<TDef>(IEnumerable<TDef> defs, string suffix, string typeTag, Func<TDef, string> getEntityName, Func<TDef, NamespacedKey> getKey) where TDef : CRMContentDefinition
 			{
-				foreach (var def in defs)
+				foreach (TDef def in defs)
 				{
 					Debug.Log($"Checking definition: {def.name}");
 
-					var className = ClassNameFromNamespace(getKey(def).Namespace, suffix);
+					string className = ClassNameFromNamespace(getKey(def).Namespace, suffix);
 					if (!definitionsDict.TryGetValue(className, out var bucket))
 						definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
-					var csharpName = NormalizeNamespacedKey(getEntityName(def));
-					var nsKey = getKey(def).ToString();
+					string csharpName = NormalizeNamespacedKey(getEntityName(def), true);
+					string nsKey = getKey(def).ToString();
 
 					bucket[csharpName] = nsKey;
 
@@ -70,11 +108,11 @@ public class ContentContainerEditor : UnityEditor.Editor
 				}
 			}
 
-			Build(enemies,	 "EnemyKeys",		"CREnemyInfo",		d => d.EntityNameReference, d => d.Key);
-			Build(weathers,	"WeatherKeys",	  "CRWeatherInfo",	  d => d.EntityNameReference, d => d.Key);
+			Build(enemies, "EnemyKeys", "CREnemyInfo", d => d.EntityNameReference, d => d.Key);
+			Build(weathers,	"WeatherKeys", "CRWeatherInfo", d => d.EntityNameReference, d => d.Key);
 			Build(unlockables, "UnlockableItemKeys","CRUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
-			Build(items,	   "ItemKeys",		 "CRItemInfo",		 d => d.EntityNameReference, d => d.Key);
-			Build(mapObjects,  "MapObjectKeys",	"CRMapObjectInfo",	d => d.EntityNameReference, d => d.Key);
+			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
+			Build(mapObjects, "MapObjectKeys", "CRMapObjectInfo", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
@@ -88,24 +126,40 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<EnemyType> enemies = FindAssetsByType<EnemyType>().ToList();
 			UnlockablesList unlockablesList = FindAssetsByType<UnlockablesList>().ToList().First();
 			List<Item> items = FindAssetsByType<Item>().ToList();
+			List<GameObject> mapObjects = levels.SelectMany(level => level.spawnableMapObjects.Select(m => m.prefabToSpawn).Concat(level.spawnableOutsideObjects.Select(o => o.spawnableObject.prefabToSpawn))).Distinct().ToList();
 
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, bool>? includePredicate = null)
+			void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?>? assetSelector = null)
 			{
 				if (!definitionsDict.TryGetValue(className, out var bucket))
 					definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
 				foreach (var it in src)
 				{
-					if (includePredicate != null && !includePredicate(it))
+					Object? asset = null;
+
+					if (assetSelector != null)
+					{
+						asset = assetSelector(it);
+					}
+					else if (it is Object unityObj)
+					{
+						asset = unityObj;
+					}
+
+					if (asset == null)
+						continue;
+
+					string assetPath = AssetDatabase.GetAssetPath(asset);
+					if (string.IsNullOrEmpty(assetPath) || !assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
 						continue;
 
 					string displayName = nameGetter(it);
 					Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
 
-					string csharpName = NormalizeNamespacedKey(displayName);
-					string nsKey = "lethal_company:" + NormalizeNamespacedKey(displayName.ToLowerInvariant().Replace(" ", "_"));
+					string csharpName = NormalizeNamespacedKey(displayName, true);
+					string nsKey = "lethal_company:" + NormalizeNamespacedKey(displayName, false);
 
 					bucket[csharpName] = nsKey;
 
@@ -115,16 +169,27 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 			BuildVanilla(enemies, "EnemyKeys", "CREnemyInfo",
 				enemyType => enemyType.enemyName,
-				enemyType => !enemyType.name.Contains("Obj", StringComparison.InvariantCultureIgnoreCase));
+				obj => obj);
 
-			BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "CRUnlockableItemInfo", u => u.unlockableName);
+			BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "CRUnlockableItemInfo",
+				u => u.unlockableName,
+				obj => unlockablesList);
 
 			BuildVanilla(items, "ItemKeys", "CRItemInfo",
 				item => item.itemName,
-				item => !item.name.Contains("Obj", StringComparison.InvariantCultureIgnoreCase));
+				obj => obj);
 
-			BuildVanilla(levels, "MoonKeys", "CRMoonInfo", l => l.PlanetName);
-			BuildVanilla(dungeons, "DungeonKeys", "CRDungeonInfo", d => d.name);
+			BuildVanilla(levels, "MoonKeys", "CRMoonInfo",
+				l => l.PlanetName,
+				obj => obj);
+
+			BuildVanilla(dungeons, "DungeonKeys", "CRDungeonInfo",
+				d => d.name,
+				obj => obj);
+			
+			BuildVanilla(mapObjects, "MapObjectKeys", "CRMapObjectInfo",
+				m => m.name,
+				obj => obj);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla_namespaced_keys", "json");
