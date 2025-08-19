@@ -21,7 +21,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 {
 	static Dictionary<AssetBundleData, List<string>> fails = [];
 
-	private static readonly Regex NamespacedKeyRegex = new(@"[.\n\t""`\[\]'-]");
+	private static readonly Regex NamespacedKeyRegex = new(@"[?!.\n\t""`\[\]'-]");
 
 	private static readonly Dictionary<char, string> NumberWords = new()
 	{
@@ -132,7 +132,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(mapObjects, "MapObjectKeys", "CRMapObjectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(additionalTiles, "AdditionalTilesKeys", "CRAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
-			Build(achievements, "AchievementKeys", "CRAchievementDefinition", d => d.EntityNameReference, d => d.Key);
+			Build(achievements, "AchievementKeys", "CodeRebirthLib.CRMod.CRMAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
