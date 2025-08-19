@@ -127,7 +127,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			}
 
 			Build(enemies, "EnemyKeys", "CREnemyInfo", d => d.EntityNameReference, d => d.Key);
-			Build(weathers,	"WeatherKeys", "CRWeatherInfo", d => d.EntityNameReference, d => d.Key);
+			Build(weathers,	"WeatherKeys", "CRWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(unlockables, "UnlockableItemKeys","CRUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(mapObjects, "MapObjectKeys", "CRMapObjectInfo", d => d.EntityNameReference, d => d.Key);
