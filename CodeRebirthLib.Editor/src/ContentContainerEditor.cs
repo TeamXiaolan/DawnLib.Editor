@@ -9,7 +9,9 @@ using CodeRebirthLib.Utils;
 using DunGen.Graph;
 using Newtonsoft.Json;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace CodeRebirthLib.Editor;
@@ -40,21 +42,35 @@ public class ContentContainerEditor : UnityEditor.Editor
 		if (string.IsNullOrEmpty(input))
 			return string.Empty;
 
-		string cleanedstring = NamespacedKeyRegex.Replace(input, string.Empty);
+		string cleanedString = NamespacedKeyRegex.Replace(input, string.Empty);
 
-		StringBuilder stringBuilder = new System.Text.StringBuilder(cleanedstring.Length);
-		foreach (char character in cleanedstring)
+		StringBuilder cleanBuilder = new StringBuilder(cleanedString.Length);
+		bool foundAllBeginningDigits = false;
+		foreach (char character in cleanedString)
 		{
-			if (NumberWords.TryGetValue(character, out var word))
-				stringBuilder.Append(word);
-			else
-				stringBuilder.Append(character);
+			if (!foundAllBeginningDigits && (char.IsDigit(character) || character == ' '))
+			{
+				continue;
+			}
+			foundAllBeginningDigits = true;
+			cleanBuilder.Append(character);
 		}
 
-		string result = stringBuilder.ToString();
+		StringBuilder actualWordBuilder = new StringBuilder(cleanBuilder.Length);
+		foreach (char character in cleanBuilder.ToString())
+		{
+			if (NumberWords.TryGetValue(character, out var word))
+				actualWordBuilder.Append(word);
+			else
+				actualWordBuilder.Append(character);
+		}
+
+		string result = actualWordBuilder.ToString();
 		if (CSharpName)
 		{
 			result = result.Replace(" ", "");
+			result = result.Replace("_", "");
+			result = result.ToCapitalized();
 		}
 		else
 		{
@@ -85,6 +101,8 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<CRMUnlockableDefinition> unlockables = FindAssetsByType<CRMUnlockableDefinition>().ToList();
 			List<CRMItemDefinition> items = FindAssetsByType<CRMItemDefinition>().ToList();
 			List<CRMMapObjectDefinition> mapObjects = FindAssetsByType<CRMMapObjectDefinition>().ToList();
+			List<CRMAchievementDefinition> achievements = FindAssetsByType<CRMAchievementDefinition>().ToList();
+			List<CRMAdditionalTilesDefinition> additionalTiles = FindAssetsByType<CRMAdditionalTilesDefinition>().ToList();
 
 			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
@@ -113,6 +131,8 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(unlockables, "UnlockableItemKeys","CRUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(mapObjects, "MapObjectKeys", "CRMapObjectInfo", d => d.EntityNameReference, d => d.Key);
+			Build(additionalTiles, "AdditionalTilesKeys", "CRAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
+			Build(achievements, "AchievementKeys", "CRAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
@@ -130,7 +150,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?>? assetSelector = null)
+			void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?>? assetSelector = null, bool bypassCheck = false)
 			{
 				if (!definitionsDict.TryGetValue(className, out var bucket))
 					definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
@@ -148,17 +168,23 @@ public class ContentContainerEditor : UnityEditor.Editor
 						asset = unityObj;
 					}
 
-					if (asset == null)
+					if (asset == null && !bypassCheck)
 						continue;
 
-					string assetPath = AssetDatabase.GetAssetPath(asset);
-					if (string.IsNullOrEmpty(assetPath) || !assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
-						continue;
+					if (!bypassCheck)
+					{
+						string assetPath = AssetDatabase.GetAssetPath(asset);
+						if (string.IsNullOrEmpty(assetPath) || !assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
+							continue;
+					}
 
 					string displayName = nameGetter(it);
 					Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
 
 					string csharpName = NormalizeNamespacedKey(displayName, true);
+					if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
+						continue;
+
 					string nsKey = "lethal_company:" + NormalizeNamespacedKey(displayName, false);
 
 					bucket[csharpName] = nsKey;
@@ -190,6 +216,13 @@ public class ContentContainerEditor : UnityEditor.Editor
 			BuildVanilla(mapObjects, "MapObjectKeys", "CRMapObjectInfo",
 				m => m.name,
 				obj => obj);
+
+			List<WeatherEffect> weathers = LoadSampleSceneRelayTimeOfDay().effects.ToList();
+
+			BuildVanilla(weathers, "WeatherKeys", "CRWeatherInfo",
+				w => w.name,
+				obj => null,
+				true); // there is no asset for this so idk just gonna use the unlockablesList one to fake it.
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla_namespaced_keys", "json");
@@ -233,6 +266,23 @@ public class ContentContainerEditor : UnityEditor.Editor
 			serializedObject.ApplyModifiedProperties();
 			serializedObject.Update();
 		}
+	}
+
+	private TimeOfDay LoadSampleSceneRelayTimeOfDay()
+	{
+		SceneSetup[] setup = EditorSceneManager.GetSceneManagerSetup();
+
+		Scene scene = EditorSceneManager.OpenScene("Assets/LethalCompany/Game/Scenes/SampleSceneRelay.unity", OpenSceneMode.Additive);
+
+		TimeOfDay timeOfDay = scene.GetRootGameObjects()
+			.SelectMany(go => go.GetComponentsInChildren<TimeOfDay>(true))
+			.First();
+
+		EditorSceneManager.CloseScene(scene, true);
+		if (setup != null && setup.Length > 0)
+			EditorSceneManager.RestoreSceneManagerSetup(setup);
+
+		return timeOfDay;
 	}
 
 	static void ClearConsole()
