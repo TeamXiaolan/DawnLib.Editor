@@ -5,7 +5,6 @@ using CodeRebirthLib.CRMod;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 
-[CustomPropertyDrawer(typeof(CRMAchievementReference))]
 [CustomPropertyDrawer(typeof(CRMEnemyReference))]
 [CustomPropertyDrawer(typeof(CRMItemReference))]
 [CustomPropertyDrawer(typeof(CRMMapObjectReference))]
