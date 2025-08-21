@@ -11,7 +11,7 @@ namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 [CustomPropertyDrawer(typeof(CRMUnlockableReference))]
 [CustomPropertyDrawer(typeof(CRMWeatherReference))]
 [CustomPropertyDrawer(typeof(CRMAchievementReference))]
-[CustomPropertyDrawer(typeof(CRMAdditionalTilesReference))]
+[CustomPropertyDrawer(typeof(CRMAdditionalTilesReference), true)]
 public class CRMContentReferenceDrawer : PropertyDrawer
 {
     // todo: update this if an asset moves
