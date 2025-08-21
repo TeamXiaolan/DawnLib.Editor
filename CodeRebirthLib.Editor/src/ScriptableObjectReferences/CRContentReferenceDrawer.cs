@@ -70,7 +70,7 @@ public class CRMContentReferenceDrawer : PropertyDrawer
         EditorGUI.EndProperty();
     }
 
-    static void SetReference(SerializedProperty property, CRMContentReference value)
+    private static void SetReference(SerializedProperty property, CRMContentReference value)
     {
         property.managedReferenceValue = value;
         EditorUtility.SetDirty(property.serializedObject.targetObject);

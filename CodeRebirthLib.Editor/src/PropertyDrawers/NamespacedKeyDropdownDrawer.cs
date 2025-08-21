@@ -1,11 +1,16 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CodeRebirthLib.CRMod;
+using CodeRebirthLib.Editor.ScriptableObjectReferences;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
 namespace CodeRebirthLib.Editor.PropertyDrawers;
-[CustomPropertyDrawer(typeof(NamespacedKey))]
+
+[CustomPropertyDrawer(typeof(NamespacedKey<>), true)]
+[CustomPropertyDrawer(typeof(NamespacedKey), true)]
 public class NamespacedKeyDropdownDrawer : PropertyDrawer
 {
     private class State
@@ -33,41 +38,33 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             label = new GUIContent(inspectorName.displayName);
         }
 
-        State state = GetState(property);
-
-        List<string> options = EditorPrefsStringList.GetList("code_rebirth_lib_namespaces");
-
-        Object target = property.serializedObject.targetObject;
-        NamespacedKey current = (NamespacedKey)fieldInfo.GetValue(target);
-        int index = options.IndexOf(current._namespace);
+        SerializedProperty nsProp = property.FindPropertyRelative("_namespace");
+        SerializedProperty keyProp = property.FindPropertyRelative("_key");
 
         EditorGUI.BeginProperty(position, label, property);
 
+        List<string> options = EditorJsonStringList.GetList();
         string[] displayOptions = new string[options.Count + 2];
-        for (int i = 0; i < options.Count; i++)
-        {
-            displayOptions[i] = options[i];
-        }
+        for (int i = 0; i < options.Count; i++) displayOptions[i] = options[i];
         displayOptions[^2] = "<Remove all unused>";
         displayOptions[^1] = "<Add New>";
 
-        int selectedIndex = state.addingNew ? displayOptions.Length - 1 : Mathf.Max(index, 0);
+        string currentNs = nsProp.stringValue;
+        int index = Mathf.Max(options.IndexOf(currentNs), 0);
 
-        Rect dropdownRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        Rect dropdownRect = new(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+        State state = GetState(property);
+        int selectedIndex = state.addingNew ? displayOptions.Length - 1 : index;
         int newIndex = EditorGUI.Popup(dropdownRect, label.text, selectedIndex, displayOptions);
 
         if (displayOptions[newIndex] == "<Add New>")
         {
             state.addingNew = true;
-            Rect addNewTextField = new Rect(position.x, position.y + EditorGUIUtility.singleLineHeight + 2, position.width, EditorGUIUtility.singleLineHeight);
 
-            EditorGUI.BeginChangeCheck();
-            GUI.SetNextControlName("NSAddField");
-            state.customValue = EditorGUI.TextField(addNewTextField, state.customValue);
-            if (EditorGUI.EndChangeCheck())
-            {
-
-            }
+            Rect addNewRect = new(position.x, dropdownRect.yMax + 2, position.width, EditorGUIUtility.singleLineHeight);
+            string ctrlName = $"NSAddField_{property.propertyPath}";
+            GUI.SetNextControlName(ctrlName);
+            state.customValue = EditorGUI.TextField(addNewRect, state.customValue);
 
             if (Event.current.type == EventType.KeyUp)
             {
@@ -77,14 +74,9 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                     if (!string.IsNullOrEmpty(value))
                     {
                         if (!options.Contains(value))
-                            EditorPrefsStringList.AddToList("code_rebirth_lib_namespaces", value);
+                            EditorJsonStringList.AddToList(value);
 
-                        current._namespace = value;
-                        Undo.RecordObject(target, "Change Namespace");
-                        fieldInfo.SetValue(target, current);
-                        property.serializedObject.ApplyModifiedProperties();
-                        property.serializedObject.Update();
-                        EditorUtility.SetDirty(property.serializedObject.targetObject);
+                        SetReference(property, value, "Change Namespace");
                         state.addingNew = false;
                         state.customValue = "";
                         GUI.FocusControl(null);
@@ -100,26 +92,28 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                 }
             }
 
-            if (GUI.GetNameOfFocusedControl() != "NSAddField")
-                EditorGUI.FocusTextInControl("NSAddField");
+            if (GUI.GetNameOfFocusedControl() != ctrlName)
+                EditorGUI.FocusTextInControl(ctrlName);
         }
         else if (displayOptions[newIndex] == "<Remove all unused>")
         {
             List<CRMContentDefinition> definitions = ContentContainerEditor.FindAssetsByType<CRMContentDefinition>().ToList();
-            List<NamespacedKey> usedNamespaces = new();
-            foreach (var definition in definitions)
-            {
-                if (string.IsNullOrEmpty(definition.Key._namespace))
-                    continue;
 
-                Debug.Log($"Definition: {definition.name} contains namespace: {definition.Key._namespace}");
-                if (!usedNamespaces.Contains(definition.Key))
+            var usedNamespaces = new HashSet<string>();
+            foreach (CRMContentDefinition def in definitions)
+            {
+                SerializedObject serializedObject = new(def);
+                SerializedProperty key = serializedObject.FindProperty("Key");
+                if (key != null)
                 {
-                    usedNamespaces.Add(definition.Key);
+                    SerializedProperty kNs = key.FindPropertyRelative("_namespace");
+                    if (kNs != null && !string.IsNullOrEmpty(kNs.stringValue))
+                        usedNamespaces.Add(kNs.stringValue);
                 }
             }
-            List<string> unusedNamespaces = options.Except(usedNamespaces.Select(it => it._namespace)).ToList();
-            EditorPrefsStringList.RemoveFromList("code_rebirth_lib_namespaces", unusedNamespaces);
+
+            List<string> unused = options.Except(usedNamespaces).ToList();
+            EditorJsonStringList.RemoveFromList(unused);
 
             state.addingNew = false;
             state.customValue = "";
@@ -129,14 +123,9 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             if (newIndex >= 0 && newIndex < options.Count)
             {
                 var newNs = options[newIndex];
-                if (newNs != current._namespace)
+                if (newNs != currentNs)
                 {
-                    current._namespace = newNs;
-                    Undo.RecordObject(target, "Change Namespace");
-                    fieldInfo.SetValue(target, current);
-                    property.serializedObject.ApplyModifiedProperties();
-                    property.serializedObject.Update();
-                    EditorUtility.SetDirty(property.serializedObject.targetObject);
+                    SetReference(nsProp, newNs, "Change Namespace");
                 }
             }
 
@@ -144,80 +133,103 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             state.customValue = "";
         }
 
-        property.serializedObject.Update();
-
-        EditorGUI.BeginChangeCheck();
-        string currentKeyName = string.Empty;
+        string currentKeyName;
+        bool contentDefinitionExists = false;
         if (property.serializedObject.targetObject is CRMContentDefinition contentDefinition)
         {
+            contentDefinitionExists = true;
             string defaultKey = contentDefinition.GetDefaultKey();
-            if (current._key != defaultKey)
+            if (keyProp.stringValue != defaultKey)
             {
-                Undo.RecordObject(target, "Change Key");
-                current._key = defaultKey;
-                fieldInfo.SetValue(target, current);
-                property.serializedObject.ApplyModifiedProperties();
-                EditorUtility.SetDirty(property.serializedObject.targetObject);
+                SetReference(keyProp, defaultKey, "Change Key");
             }
-
             currentKeyName = defaultKey;
         }
         else
         {
-            currentKeyName = current._key;
+            currentKeyName = keyProp.stringValue;
         }
 
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Label("Key", GUILayout.Width(EditorGUIUtility.labelWidth));
-        GUI.enabled = false;
-        GUILayout.TextArea(currentKeyName, EditorStyles.textField);
-        GUI.enabled = true;
-        EditorGUILayout.EndHorizontal();
+        float line = EditorGUIUtility.singleLineHeight;
+        float svs  = EditorGUIUtility.standardVerticalSpacing;
+
+        float y = position.y;
+        y += line + svs;
+        if (GetState(property).addingNew)
+            y += line + svs;
+
+        Rect keyLabelRect = new(position.x, y, EditorGUIUtility.labelWidth, line);
+        Rect keyValueRect = new(position.x + EditorGUIUtility.labelWidth, y, position.width - EditorGUIUtility.labelWidth, line);
+
+        EditorGUI.LabelField(keyLabelRect, "Key");
+        using (new EditorGUI.DisabledScope(contentDefinitionExists))
+        {
+            currentKeyName = EditorGUI.TextField(keyValueRect, currentKeyName);
+            if (currentKeyName != keyProp.stringValue)
+            {
+                SetReference(keyProp, currentKeyName, "Change Key");
+            }
+        }
         EditorGUI.EndProperty();
+    }
+
+    private static void SetReference(SerializedProperty property, string value, string changeName)
+    {
+        Undo.RecordObject(property.serializedObject.targetObject, changeName);
+        property.stringValue = value;
+        EditorUtility.SetDirty(property.serializedObject.targetObject);
+        property.serializedObject.ApplyModifiedProperties();
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
-        float height = EditorGUIUtility.singleLineHeight;
-        height += EditorGUIUtility.standardVerticalSpacing;
+        float line = EditorGUIUtility.singleLineHeight;
+        float svs = EditorGUIUtility.standardVerticalSpacing;
+
+        float h = 0f;
+        h += line;
         if (GetState(property).addingNew)
-        {
-            height += EditorGUIUtility.singleLineHeight;
-            height += EditorGUIUtility.standardVerticalSpacing;
-        }
-        return height;
+            h += svs + line;
+        h += svs + line;
+
+        return h;
     }
 }
 
-public static class EditorPrefsStringList
+public static class EditorJsonStringList
 {
-    public static List<string> GetList(string key)
+    public static List<string> GetList()
     {
-        string raw = EditorPrefs.GetString(key, "");
-        var list = new List<string>();
-        if (!string.IsNullOrEmpty(raw))
-            list.AddRange(raw.Split('|'));
-        list.RemoveAll(string.IsNullOrWhiteSpace);
-        return list;
+        if (!File.Exists(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json")))
+        {
+            return new();
+        }
+        List<string>? listOfNamespaces = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json")));
+        listOfNamespaces ??= new();
+
+        listOfNamespaces.RemoveAll(string.IsNullOrWhiteSpace);
+        return listOfNamespaces;
     }
 
-    public static void AddToList(string key, string value)
+    public static void AddToList(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return;
 
-        var list = GetList(key);
+        List<string> list = GetList();
         if (!list.Contains(value))
         {
             list.Add(value);
-            EditorPrefs.SetString(key, string.Join("|", list));
+			string text = JsonConvert.SerializeObject(list, Formatting.Indented);
+			File.WriteAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json"), text);
         }
     }
 
-    public static void RemoveFromList(string key, List<string> list)
+    public static void RemoveFromList(List<string> list)
     {
-        var currentList = GetList(key);
+        List<string> currentList = GetList();
         currentList.RemoveAll(list.Contains);
-        EditorPrefs.SetString(key, string.Join("|", currentList));
+        string text = JsonConvert.SerializeObject(currentList, Formatting.Indented);
+        File.WriteAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json"), text);
     }
 }
