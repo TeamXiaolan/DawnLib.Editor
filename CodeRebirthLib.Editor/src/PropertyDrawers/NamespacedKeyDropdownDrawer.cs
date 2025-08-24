@@ -134,7 +134,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         string currentKeyName;
         bool contentDefinitionExists = false;
-        if (property.serializedObject.targetObject is CRMContentDefinition contentDefinition && fieldInfo.Name == "_typedKey")
+        if (property.serializedObject.targetObject is CRMContentDefinition contentDefinition && fieldInfo.Name != "_tags")
         {
             contentDefinitionExists = true;
             string defaultKey = contentDefinition.GetDefaultKey();
