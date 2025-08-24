@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.ScriptableObjectReferences;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;

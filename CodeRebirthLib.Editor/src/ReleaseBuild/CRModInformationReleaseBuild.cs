@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using CodeRebirthLib.CRMod;
+using CodeRebirthLib.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
 
@@ -95,22 +96,17 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
 
             var sprite = modInfo.ModIcon;
 
-            if (!sprite.texture.isReadable)
-            {
-                EditorUtility.DisplayDialog("Error", "Mod icon is not readable, aborting.", "OK");
-                return;
-            }
-
             if (sprite.texture.width > 256 || sprite.texture.height > 256)
             {
-                EditorUtility.DisplayDialog("Error", "Mod Icon is {tex.width}x{tex.height}, it needs to be resized to a maximum of 256x256, aborting.", "OK");
+                EditorUtility.DisplayDialog("Error", $"Mod Icon is {sprite.texture.width}x{sprite.texture.height}, it needs to be resized to a maximum of 256x256, aborting.", "OK");
                 // var resized = new Texture2D(256, 256, tex.format, mipChain: false);
                 // Graphics.ConvertTexture(tex, resized);
                 // File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), resized.EncodeToPNG());
                 return;
             }
 
-            File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), sprite.texture.EncodeToPNG());
+            Texture2D decompressedTexture = sprite.texture.DeCompress();
+            File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), decompressedTexture.EncodeToPNG());
 
             bool includeWR = false;
             string[] allBundleFiles = Directory.GetFiles(AssetBundleFolderPath);
@@ -169,4 +165,5 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
             catch { /* ignore */ }
         }
     }
+    
 }
