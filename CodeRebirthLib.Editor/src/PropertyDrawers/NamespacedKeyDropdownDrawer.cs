@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CodeRebirthLib.CRMod;
+using CodeRebirthLib.Editor.Extensions;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -75,7 +76,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                         if (!options.Contains(value))
                             EditorJsonStringList.AddToList(value);
 
-                        SetReference(property, value, "Change Namespace");
+                        property.SetReference(value, "Change Namespace");
                         state.addingNew = false;
                         state.customValue = "";
                         GUI.FocusControl(null);
@@ -124,7 +125,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                 var newNs = options[newIndex];
                 if (newNs != currentNs)
                 {
-                    SetReference(nsProp, newNs, "Change Namespace");
+                    nsProp.SetReference(newNs, "Change Namespace");
                 }
             }
 
@@ -140,7 +141,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             string defaultKey = contentDefinition.GetDefaultKey();
             if (keyProp.stringValue != defaultKey)
             {
-                SetReference(keyProp, defaultKey, "Change Key");
+                keyProp.SetReference(defaultKey, "Change Key");
             }
             currentKeyName = defaultKey;
         }
@@ -166,18 +167,10 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             currentKeyName = EditorGUI.TextField(keyValueRect, currentKeyName);
             if (currentKeyName != keyProp.stringValue)
             {
-                SetReference(keyProp, currentKeyName, "Change Key");
+                keyProp.SetReference(currentKeyName, "Change Key");
             }
         }
         EditorGUI.EndProperty();
-    }
-
-    private static void SetReference(SerializedProperty property, string value, string changeName)
-    {
-        Undo.RecordObject(property.serializedObject.targetObject, changeName);
-        property.stringValue = value;
-        EditorUtility.SetDirty(property.serializedObject.targetObject);
-        property.serializedObject.ApplyModifiedProperties();
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)

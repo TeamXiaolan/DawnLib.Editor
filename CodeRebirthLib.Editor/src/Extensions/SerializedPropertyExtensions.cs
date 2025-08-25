@@ -5,6 +5,7 @@ using System.Reflection;
 using UnityEditor;
 
 namespace CodeRebirthLib.Editor.Extensions;
+
 static class SerializedPropertyExtensions
 {
     public static object? GetTargetObjectOfProperty(this SerializedProperty prop)
@@ -74,5 +75,13 @@ static class SerializedPropertyExtensions
             }
         }
         return enm.Current;
+    }
+
+    public static void SetReference(this SerializedProperty property, string value, string changeName)
+    {
+        Undo.RecordObject(property.serializedObject.targetObject, changeName);
+        property.stringValue = value;
+        EditorUtility.SetDirty(property.serializedObject.targetObject);
+        property.serializedObject.ApplyModifiedProperties();
     }
 }

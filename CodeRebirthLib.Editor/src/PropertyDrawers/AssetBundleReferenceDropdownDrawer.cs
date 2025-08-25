@@ -1,5 +1,6 @@
 using System;
 using CodeRebirthLib.CRMod;
+using CodeRebirthLib.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
 
@@ -33,17 +34,9 @@ public class AssetBundleReferenceDropdownDrawer : PropertyDrawer
             string newAB = displayOptions[newIndex];
             if (newAB != currentAB)
             {
-                SetReference(property, newAB, "Change AssetBundleReference");
+                property.SetReference(newAB, "Change AssetBundleReference");
             }
         }
         EditorGUI.EndProperty();
-    }
-
-    private static void SetReference(SerializedProperty property, string value, string changeName)
-    {
-        Undo.RecordObject(property.serializedObject.targetObject, changeName);
-        property.stringValue = value;
-        EditorUtility.SetDirty(property.serializedObject.targetObject);
-        property.serializedObject.ApplyModifiedProperties();
     }
 }
