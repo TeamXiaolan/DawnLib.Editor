@@ -12,9 +12,13 @@ public class EntityDataDrawer : PropertyDrawer
         if (obj is EntityData entity)
         {
             string? keyLabel = entity.Key?.ToString();
-            if (!string.IsNullOrEmpty(keyLabel))
+            if (!string.IsNullOrEmpty(keyLabel) && keyLabel != ":")
             {
                 label = new GUIContent(keyLabel);
+            }
+            else
+            {
+                label = new GUIContent("Empty Entity");
             }
         }
 
