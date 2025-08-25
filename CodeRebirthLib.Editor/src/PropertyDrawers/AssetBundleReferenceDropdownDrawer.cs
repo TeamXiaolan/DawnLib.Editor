@@ -30,11 +30,10 @@ public class AssetBundleReferenceDropdownDrawer : PropertyDrawer
 
         if (newIndex >= 0 && newIndex < displayOptions.Length)
         {
-            Debug.Log($"Selected AssetBundle: {displayOptions[newIndex]}");
             string newAB = displayOptions[newIndex];
             if (newAB != currentAB)
             {
-                property.SetReference(newAB, "Change AssetBundleReference");
+                property.SetStringReference(newAB, "Change AssetBundleReference");
             }
         }
         EditorGUI.EndProperty();

@@ -254,50 +254,6 @@ public class ContentContainerEditor : UnityEditor.Editor
 		clearMethod.Invoke(null, null);
 	}
 
-	public static void DoMigrations<TEntity, TDef, TRef>(AssetBundleData bundleData, List<TEntity> entityDataList, List<TDef> definitions, Func<TRef> newCallback)
-		where TEntity : EntityData<TRef>
-		where TDef : CRMContentDefinition
-		where TRef : CRMContentReference, new()
-	{
-		foreach (TEntity data in entityDataList)
-		{
-			if (!string.IsNullOrEmpty(data.Key.Key))
-				continue; // already migrated
-
-			if (!TryGetMigration(bundleData, definitions, data, out string guid, out TDef def))
-				continue;
-
-			TRef reference = newCallback();
-			reference.Key = def.Key;
-			reference.assetGUID = guid;
-			data._reference = reference;
-		}
-	}
-
-	public static bool TryGetMigration<TDef, TEntity>(AssetBundleData bundleData, List<TDef> definitions, TEntity data, out string guid, out TDef definition) where TDef : CRMContentDefinition where TEntity : EntityData
-	{
-		guid = "";
-		definition = null;
-		try
-		{
-			definition = definitions.First(it => string.Equals(it.EntityNameReference, data.entityName, StringComparison.InvariantCultureIgnoreCase));
-		}
-		catch (InvalidOperationException exception)
-		{
-			if (!fails.TryGetValue(bundleData, out List<string> failList))
-			{
-				failList = [];
-			}
-			failList.Add($"{data.entityName} ({typeof(TEntity).Name})");
-			fails[bundleData] = failList;
-			return false;
-		}
-
-		string path = AssetDatabase.GetAssetPath(definition);
-		guid = AssetDatabase.GUIDFromAssetPath(path).ToString();
-		return true;
-	}
-
 	public static IEnumerable<T> FindAssetsByType<T>() where T : Object
 	{
 		var guids = AssetDatabase.FindAssets($"t:{typeof(T)}");

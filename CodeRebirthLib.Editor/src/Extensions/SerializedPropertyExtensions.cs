@@ -77,10 +77,18 @@ static class SerializedPropertyExtensions
         return enm.Current;
     }
 
-    public static void SetReference(this SerializedProperty property, string value, string changeName)
+    public static void SetStringReference(this SerializedProperty property, string value, string changeName)
     {
         Undo.RecordObject(property.serializedObject.targetObject, changeName);
         property.stringValue = value;
+        EditorUtility.SetDirty(property.serializedObject.targetObject);
+        property.serializedObject.ApplyModifiedProperties();
+    }
+
+    public static void SetManagedReference(this SerializedProperty property, object obj, string changeName)
+    {
+        Undo.RecordObject(property.serializedObject.targetObject, changeName);
+        property.managedReferenceValue = obj;
         EditorUtility.SetDirty(property.serializedObject.targetObject);
         property.serializedObject.ApplyModifiedProperties();
     }

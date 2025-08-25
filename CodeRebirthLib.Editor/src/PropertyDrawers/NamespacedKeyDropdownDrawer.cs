@@ -76,7 +76,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                         if (!options.Contains(value))
                             EditorJsonStringList.AddToList(value);
 
-                        property.SetReference(value, "Change Namespace");
+                        property.SetStringReference(value, "Change Namespace");
                         state.addingNew = false;
                         state.customValue = "";
                         GUI.FocusControl(null);
@@ -125,7 +125,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                 var newNs = options[newIndex];
                 if (newNs != currentNs)
                 {
-                    nsProp.SetReference(newNs, "Change Namespace");
+                    nsProp.SetStringReference(newNs, "Change Namespace");
                 }
             }
 
@@ -141,7 +141,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             string defaultKey = contentDefinition.GetDefaultKey();
             if (keyProp.stringValue != defaultKey)
             {
-                keyProp.SetReference(defaultKey, "Change Key");
+                keyProp.SetStringReference(defaultKey, "Change Key");
             }
             currentKeyName = defaultKey;
         }
@@ -167,7 +167,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             currentKeyName = EditorGUI.TextField(keyValueRect, currentKeyName);
             if (currentKeyName != keyProp.stringValue)
             {
-                keyProp.SetReference(currentKeyName, "Change Key");
+                keyProp.SetStringReference(currentKeyName, "Change Key");
             }
         }
         EditorGUI.EndProperty();

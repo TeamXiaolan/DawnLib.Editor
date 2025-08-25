@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using CodeRebirthLib.CRMod;
+using CodeRebirthLib.Editor.Extensions;
 
 namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
 
@@ -29,7 +30,7 @@ public class CRMContentReferenceDrawer : PropertyDrawer
 
             var constructor = referenceType.GetConstructor([]);
             reference = (CRMContentReference)constructor.Invoke([]);
-            SetReference(property, reference);
+            property.SetManagedReference(reference, "Create Empty Reference");
         }
         EditorGUI.BeginProperty(position, label, property);
 
@@ -64,15 +65,9 @@ public class CRMContentReferenceDrawer : PropertyDrawer
                 reference.Key = null;
             }
 
-            SetReference(property, reference);
+            property.SetManagedReference(reference, "Set New Reference");
         }
 
         EditorGUI.EndProperty();
-    }
-
-    private static void SetReference(SerializedProperty property, CRMContentReference value)
-    {
-        property.managedReferenceValue = value;
-        EditorUtility.SetDirty(property.serializedObject.targetObject);
     }
 }
