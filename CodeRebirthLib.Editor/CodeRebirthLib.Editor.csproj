@@ -16,6 +16,7 @@
     <ItemGroup>
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
       <PackageReference Include="XuXiaolan.CodeRebirthLib" Version="0.10.0" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="mrov.WeatherRegistry" Publicize="true" Version="0.7.1" PrivateAssets="all" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <Reference Include="UnityEditor" PrivateAssets="all">
         <HintPath>$(UnityEditorPath)Editor\Data\Managed\UnityEngine\UnityEditor.dll</HintPath>

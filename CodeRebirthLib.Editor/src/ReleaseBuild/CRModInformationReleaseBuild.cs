@@ -1,12 +1,15 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using CodeRebirthLib.CRMod;
 using CodeRebirthLib.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
 
 namespace CodeRebirthLib.Editor.ReleaseBuild;
+
 [CustomEditor(typeof(CRModInformation))]
 public class CRModInformationReleaseBuild : UnityEditor.Editor
 {
@@ -110,6 +113,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
 
             bool includeWR = false;
             string[] allBundleFiles = Directory.GetFiles(AssetBundleFolderPath);
+            bool WRExists = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "WeatherRegistry");
             foreach (var potentialBundleFile in allBundleFiles)
             {
                 string fileExtension = Path.GetExtension(potentialBundleFile).ToLowerInvariant();
@@ -127,8 +131,9 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                 if (assetBundle == null)
                     continue;
 
-                CRMWeatherDefinition[] weathers = assetBundle.LoadAllAssets<CRMWeatherDefinition>();
-                if (weathers.Length > 0)
+
+                bool CRMWeatherInHere = TryGetWeathers(assetBundle);
+                if (CRMWeatherInHere)
                 {
                     includeWR = true;
                     Debug.Log($"[CRLib Editor] Bundle '{Path.GetFileName(potentialBundleFile)}' contains a CRWeatherDefinition!");
@@ -164,6 +169,16 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
             }
             catch { /* ignore */ }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    static bool TryGetWeathers(AssetBundle bundle)
+    {
+        if (bundle.LoadAllAssets<CRMWeatherDefinition>().Length > 0)
+        {
+            return true;
+        }
+        return false;
     }
     
 }

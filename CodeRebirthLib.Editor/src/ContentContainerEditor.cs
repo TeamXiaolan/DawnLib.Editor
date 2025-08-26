@@ -90,6 +90,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 	public override void OnInspectorGUI()
 	{
+		EditorGUILayout.LabelField("[TIP] Hover over a red field to get more information about what's wrong.");
 		base.OnInspectorGUI();
 
 		ContentContainer content = (ContentContainer)target;

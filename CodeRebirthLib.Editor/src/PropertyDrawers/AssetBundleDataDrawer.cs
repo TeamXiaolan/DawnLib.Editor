@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using CodeRebirthLib.CRMod;
 using CodeRebirthLib.Editor.Extensions;
 using UnityEditor;
@@ -17,12 +19,12 @@ public class AssetBundleDataDrawer : PropertyDrawer
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        HashSet<string> invalidPaths = new();
+        List<(string path, string message)> invalidPathsWithMessage = new();
         bool makeHeaderRed = false;
 
         if (property.GetTargetObjectOfProperty() is AssetBundleData assetBundleData)
         {
-            makeHeaderRed |= ValidateObjectFieldsAndCollectPaths(assetBundleData, property, invalidPaths);
+            makeHeaderRed |= ValidateObjectFieldsAndCollectPaths(assetBundleData, assetBundleData, property, invalidPathsWithMessage);
 
             const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             foreach (string listName in EntityLists)
@@ -49,12 +51,27 @@ public class AssetBundleDataDrawer : PropertyDrawer
                     }
 
                     SerializedProperty elemProp = listProp.GetArrayElementAtIndex(i);
-                    makeHeaderRed |= ValidateObjectFieldsAndCollectPaths(elem, elemProp, invalidPaths);
+                    makeHeaderRed |= ValidateObjectFieldsAndCollectPaths(elem, assetBundleData, elemProp, invalidPathsWithMessage);
                 }
             }
         }
 
         GUIStyle headerStyle = EditorStyles.foldout;
+        string tooltip = string.Empty;
+        foreach (var (_, message) in invalidPathsWithMessage)
+        {
+            makeHeaderRed = true;
+            if (string.IsNullOrEmpty(message))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(tooltip))
+            {
+                tooltip += "\n";
+            }
+            tooltip += $"{message}";
+        }
         if (makeHeaderRed)
         {
             headerStyle = new GUIStyle(EditorStyles.foldout);
@@ -66,6 +83,7 @@ public class AssetBundleDataDrawer : PropertyDrawer
 
         using (new EditorGUI.PropertyScope(headerRect, label, property))
         {
+            label = new GUIContent(label.text, tooltip);
             property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, label, true, headerStyle);
         }
 
@@ -89,7 +107,7 @@ public class AssetBundleDataDrawer : PropertyDrawer
                 float height = EditorGUI.GetPropertyHeight(iterator, true);
                 childRect.height = height;
 
-                bool isInvalidHere = IsPathOrAncestorInvalid(iterator.propertyPath, invalidPaths);
+                bool isInvalidHere = IsPathOrAncestorInvalid(iterator.propertyPath, invalidPathsWithMessage);
 
                 if (isInvalidHere)
                 {
@@ -108,21 +126,27 @@ public class AssetBundleDataDrawer : PropertyDrawer
         }
     }
 
-    static bool IsPathOrAncestorInvalid(string path, HashSet<string> invalidPaths)
+    static bool IsPathOrAncestorInvalid(string path, List<(string path, string message)> invalidPathsWithMessage)
     {
-        if (invalidPaths.Contains(path))
+        foreach (var invalidPathWithMessage in invalidPathsWithMessage)
         {
-            return true;
+            if (path == invalidPathWithMessage.path)
+            {
+                return true;
+            }
         }
 
         // Check ancestors: "a.b.color" => "a.b", "a"
         int dot = path.LastIndexOf('.');
         while (dot > 0)
         {
-            string parent = path.Substring(0, dot);
-            if (invalidPaths.Contains(parent))
+            string parent = path[..dot];
+            foreach (var invalidPathWithMessage in invalidPathsWithMessage)
             {
-                return true;
+                if (parent == invalidPathWithMessage.path)
+                {
+                    return true;
+                }
             }
 
             dot = parent.LastIndexOf('.');
@@ -130,7 +154,7 @@ public class AssetBundleDataDrawer : PropertyDrawer
         return false;
     }
 
-    static bool ValidateObjectFieldsAndCollectPaths(object obj, SerializedProperty objProp, HashSet<string> invalidPaths)
+    static bool ValidateObjectFieldsAndCollectPaths(object obj, AssetBundleData assetBundleData, SerializedProperty objProp, List<(string path, string message)> invalidPathsWithMessage)
     {
         bool anyInvalid = false;
         foreach (FieldInfo fieldInfo in GetAllInstanceFields(obj.GetType()))
@@ -149,16 +173,14 @@ public class AssetBundleDataDrawer : PropertyDrawer
                 if (empty)
                 {
                     anyInvalid = true;
-                    TryAddRelativePath(objProp, fieldInfo.Name, invalidPaths);
+                    TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"{fieldInfo.Name} is empty");
                 }
             }
 
             // [AssertFieldNotNull]
             if (fieldInfo.GetCustomAttribute<AssertFieldNotNull>() != null)
             {
-                bool invalid =
-                    value == null ||
-                    (value is CRMContentReference cr && string.IsNullOrEmpty(cr.assetGUID));
+                bool invalid = value == null || (value is CRMContentReference cr && string.IsNullOrEmpty(cr.assetGUID));
 
                 if (invalid)
                 {
@@ -167,15 +189,182 @@ public class AssetBundleDataDrawer : PropertyDrawer
                     SerializedProperty parentProp = objProp.FindPropertyRelative(fieldInfo.Name);
                     if (parentProp != null)
                     {
-                        invalidPaths.Add(parentProp.propertyPath);
+                        invalidPathsWithMessage.Add((parentProp.propertyPath, $"{fieldInfo.Name} is null"));
 
                         SerializedProperty guidProp = parentProp.FindPropertyRelative("assetGUID");
                         if (guidProp != null)
-                            invalidPaths.Add(guidProp.propertyPath);
+                        {
+                            if (value is CRMEnemyReference enemyReference)
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "EnemyReference Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                            else if (value is CRMItemReference itemReference)
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "ItemReference Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                            else if (value is CRMMapObjectReference mapObjectReference)
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "MapObject Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                            else if (value is CRMUnlockableReference unlockableReference)
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "Unlockable Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                            else if (value is CRMWeatherReference weatherReference)
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "Weather Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                            else if (value is CRMAdditionalTilesReference additionalTilesReference)
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "AdditionalTiles Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                            else
+                            {
+                                invalidPathsWithMessage.Add((guidProp.propertyPath, "Unknown Reference is empty"));
+                                invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                            }
+                        }
                     }
                     else
                     {
-                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPaths);
+                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"{fieldInfo.Name} is null");
+                    }
+                }
+                else if (value is CRMContentReference contentReference)
+                {
+                    string guid = contentReference.assetGUID;
+                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    if (string.IsNullOrEmpty(path))
+                    {
+                        anyInvalid = true;
+                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"Path to {fieldInfo.Name} is invalid??");
+                        continue;
+                    }
+
+                    bool WRExists = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "WeatherRegistry");
+                    CRMContentDefinition? loadedAsset = null;
+                    if (value is CRMEnemyReference)
+                    {
+                        loadedAsset = AssetDatabase.LoadAssetAtPath<CRMEnemyDefinition>(path);
+                        CRMEnemyDefinition def = (CRMEnemyDefinition)loadedAsset;
+                        if (def.EnemyType == null)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"EnemyType on {def.name} does not exist.");
+                            continue;
+                        }
+
+                        if (def.EnemyType.enemyPrefab == null)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"EnemyPrefab on {def.EnemyType.name} does not exist.");
+                            continue;
+                        }
+                        // other checks
+                    }
+                    else if (value is CRMItemReference)
+                    {
+                        loadedAsset = AssetDatabase.LoadAssetAtPath<CRMItemDefinition>(path);
+                        CRMItemDefinition def = (CRMItemDefinition)loadedAsset;
+                        if (def.Item == null)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"Item on {def.name} does not exist.");
+                            continue;
+                        }
+
+                        if (def.Item.spawnPrefab == null)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"SpawnPrefab on {def.Item.name} does not exist.");
+                            continue;
+                        }
+                        // other checks
+                    }
+                    else if (value is CRMMapObjectReference)
+                    {
+                        loadedAsset = AssetDatabase.LoadAssetAtPath<CRMMapObjectDefinition>(path);
+                        CRMMapObjectDefinition def = (CRMMapObjectDefinition)loadedAsset;
+                        if (def.GameObject == null)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"GameObject on {def.name} does not exist.");
+                            continue;
+                        }
+                        // other checks
+                    }
+                    else if (value is CRMUnlockableReference)
+                    {
+                        loadedAsset = AssetDatabase.LoadAssetAtPath<CRMUnlockableDefinition>(path);
+                        CRMUnlockableDefinition def = (CRMUnlockableDefinition)loadedAsset;
+                        if (string.IsNullOrEmpty(def.UnlockableItem.unlockableName))
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"Unlockable's name on {def.name} is empty or does not exist.");
+                            continue;
+                        }
+                        // other checks
+                    }
+                    else if (value is CRMAdditionalTilesReference)
+                    {
+                        loadedAsset = AssetDatabase.LoadAssetAtPath<CRMAdditionalTilesDefinition>(path);
+                        CRMAdditionalTilesDefinition def = (CRMAdditionalTilesDefinition)loadedAsset;
+                        if (def.TilesToAdd == null)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"TilesToAdd on {def.name} does not exist.");
+                            continue;
+                        }
+                        // other checks
+                    }
+                    else if (WRExists)
+                    {
+                        loadedAsset = AssetDatabase.LoadAssetAtPath<CRMContentDefinition>(path);
+                        CRMContentDefinition def = (CRMContentDefinition)loadedAsset;
+                        anyInvalid = WeatherRegistryChecks(def, out string message);
+                        if (anyInvalid)
+                        {
+                            anyInvalid = true;
+                            TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, message);
+                            continue;
+                        }
+                        // other checks
+                    }
+
+                    if (loadedAsset == null)
+                    {
+                        anyInvalid = true;
+                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"CRMContentDefinition on the path: {path} does not exist somehow???");
+                        continue;
+                    }
+
+                    string assetBundleName = AssetDatabase.GetImplicitAssetBundleName(path);
+                    if (string.IsNullOrEmpty(assetBundleName))
+                    {
+                        anyInvalid = true;
+                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"{loadedAsset.name} on the path: {path} is not assigned any AssetBundle.");
+                        continue;
+                    }
+
+                    if (assetBundleName != assetBundleData.assetBundleName)
+                    {
+                        anyInvalid = true;
+                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"{loadedAsset.name} on the path: {path} is assigned to the incorrect AssetBundle, it should be assigned to: {assetBundleData.assetBundleName}.");
+                        continue;
+                    }
+
+                    string assetBundleExtension = AssetDatabase.GetImplicitAssetBundleVariantName(path);
+                    if (!string.IsNullOrEmpty(assetBundleExtension))
+                    {
+                        anyInvalid = true;
+                        TryAddRelativePath(objProp, fieldInfo.Name, invalidPathsWithMessage, $"{loadedAsset.name} on the path: {path} is assigned to an assetbundle with an extension, it should not have an extension.");
+                        continue;
                     }
                 }
             }
@@ -183,8 +372,22 @@ public class AssetBundleDataDrawer : PropertyDrawer
         return anyInvalid;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    static bool WeatherRegistryChecks(CRMContentDefinition contentDefinition, out string message)
+    {
+        message = string.Empty;
+        if (contentDefinition is CRMWeatherDefinition weatherDefinition)
+        {
+            if (weatherDefinition.Weather == null)
+            {
+                message = "Weather on " + weatherDefinition.name + " does not exist.";
+                return true;
+            }
+        }
+        return false;
+    }
 
-    static void TryAddRelativePath(SerializedProperty parent, string relativeName, HashSet<string> paths)
+    static void TryAddRelativePath(SerializedProperty parent, string relativeName, List<(string path, string message)> pathsWithMessage, string message)
     {
         if (parent == null)
         {
@@ -192,21 +395,24 @@ public class AssetBundleDataDrawer : PropertyDrawer
         }
 
         SerializedProperty child = parent.FindPropertyRelative(relativeName);
-        if (child != null) paths.Add(child.propertyPath);
+        if (child != null)
+        {
+            pathsWithMessage.Add((child.propertyPath, message));
+        }
     }
 
-    static bool IsFieldSerialized(FieldInfo f)
+    static bool IsFieldSerialized(FieldInfo fieldInfo)
     {
-        if (f.IsDefined(typeof(NonSerializedAttribute), inherit: true))
+        if (fieldInfo.IsDefined(typeof(NonSerializedAttribute), inherit: true))
             return false;
 
-        if (f.IsPublic)
+        if (fieldInfo.IsPublic)
             return true;
 
-        if (f.IsDefined(typeof(SerializeField), inherit: true))
+        if (fieldInfo.IsDefined(typeof(SerializeField), inherit: true))
             return true;
 
-        if (f.IsDefined(typeof(SerializeReference), inherit: true))
+        if (fieldInfo.IsDefined(typeof(SerializeReference), inherit: true))
             return true;
 
         return false;
@@ -218,9 +424,9 @@ public class AssetBundleDataDrawer : PropertyDrawer
         const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
         for (Type cur = t; cur != null; cur = cur.BaseType)
         {
-            foreach (var f in cur.GetFields(bindingFlags))
+            foreach (FieldInfo fieldInfo in cur.GetFields(bindingFlags))
             {
-                yield return f;
+                yield return fieldInfo;
             }
         }
     }
