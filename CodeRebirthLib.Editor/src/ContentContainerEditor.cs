@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CodeRebirthLib.CRMod;
 using CodeRebirthLib.Utils;
+using DunGen;
 using DunGen.Graph;
 using Newtonsoft.Json;
 using UnityEditor;
@@ -143,6 +144,8 @@ public class ContentContainerEditor : UnityEditor.Editor
 		if (GUILayout.Button("Generate 'vanilla_namespaced_keys.json' (Debug)"))
 		{
 			List<DungeonFlow> dungeons = FindAssetsByType<DungeonFlow>().ToList();
+			List<TileSet> tilesets = FindAssetsByType<TileSet>().ToList();
+			List<DungeonArchetype> archetypes = FindAssetsByType<DungeonArchetype>().ToList();
 			List<SelectableLevel> levels = FindAssetsByType<SelectableLevel>().ToList();
 			List<EnemyType> enemies = FindAssetsByType<EnemyType>().ToList();
 			UnlockablesList unlockablesList = FindAssetsByType<UnlockablesList>().ToList().First();
@@ -182,7 +185,24 @@ public class ContentContainerEditor : UnityEditor.Editor
 					string displayName = nameGetter(it);
 					Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
 
-					string csharpName = NormalizeNamespacedKey(displayName, true);
+					string csharpName = string.Empty;
+					if (it is TileSet tileSet)
+					{
+						csharpName = AdditionalTilesRegistrationHandler.FormatTileSetName(tileSet);
+					}
+					else if (it is DungeonArchetype dungeonArchetype)
+					{
+						csharpName = AdditionalTilesRegistrationHandler.FormatArchetypeName(dungeonArchetype);
+					}
+					else if (it is DungeonFlow dungeonFlow)
+					{
+						csharpName = AdditionalTilesRegistrationHandler.FormatFlowName(dungeonFlow);
+					}
+					else
+					{
+						csharpName = NormalizeNamespacedKey(displayName, true);
+					}
+
 					if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
 						continue;
 
@@ -214,6 +234,14 @@ public class ContentContainerEditor : UnityEditor.Editor
 				d => d.name,
 				obj => obj);
 			
+			BuildVanilla(tilesets, "DungeonTileSetKeys", "CRTileSetInfo",
+				t => t.name,
+				obj => obj);
+
+			BuildVanilla(archetypes, "DungeonArchetypeKeys", "CRArchetypeInfo",
+				a => a.name,
+				obj => obj);
+
 			BuildVanilla(mapObjects, "MapObjectKeys", "CRMapObjectInfo",
 				m => m.name,
 				obj => obj);
