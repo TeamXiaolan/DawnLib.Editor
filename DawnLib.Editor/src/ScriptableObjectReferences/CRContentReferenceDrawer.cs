@@ -1,26 +1,26 @@
 using System.Collections.Generic;
+using Dawn.Dusk;
+using Dawn.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.Extensions;
 
-namespace CodeRebirthLib.Editor.ScriptableObjectReferences;
+namespace Dawn.Editor.ScriptableObjectReferences;
 
-[CustomPropertyDrawer(typeof(CRMEnemyReference))]
-[CustomPropertyDrawer(typeof(CRMItemReference))]
-[CustomPropertyDrawer(typeof(CRMMapObjectReference))]
-[CustomPropertyDrawer(typeof(CRMUnlockableReference))]
-[CustomPropertyDrawer(typeof(CRMWeatherReference))]
-[CustomPropertyDrawer(typeof(CRMAchievementReference))]
-[CustomPropertyDrawer(typeof(CRMAdditionalTilesReference), true)]
-public class CRMContentReferenceDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(DuskEnemyReference))]
+[CustomPropertyDrawer(typeof(DuskItemReference))]
+[CustomPropertyDrawer(typeof(DuskMapObjectReference))]
+[CustomPropertyDrawer(typeof(DuskUnlockableReference))]
+[CustomPropertyDrawer(typeof(DuskWeatherReference))]
+[CustomPropertyDrawer(typeof(DuskAchievementReference))]
+[CustomPropertyDrawer(typeof(DuskAdditionalTilesReference), true)]
+public class DuskContentReferenceDrawer : PropertyDrawer
 {
     // todo: update this if an asset moves
     private static Dictionary<string, string> mappedGuids = new();
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        if (property.managedReferenceValue is not CRMContentReference reference)
+        if (property.managedReferenceValue is not DuskContentReference reference)
         {
             var referenceType = fieldInfo.FieldType;
             if (referenceType.IsGenericType && referenceType.GetGenericTypeDefinition() == typeof(List<>))
@@ -29,7 +29,7 @@ public class CRMContentReferenceDrawer : PropertyDrawer
             }
 
             var constructor = referenceType.GetConstructor([]);
-            reference = (CRMContentReference)constructor.Invoke([]);
+            reference = (DuskContentReference)constructor.Invoke([]);
             property.SetManagedReference(reference, "Create Empty Reference");
         }
         EditorGUI.BeginProperty(position, label, property);
@@ -46,12 +46,12 @@ public class CRMContentReferenceDrawer : PropertyDrawer
 
             if (!string.IsNullOrEmpty(path))
             {
-                oldAsset = AssetDatabase.LoadAssetAtPath<CRMContentDefinition>(path);
+                oldAsset = AssetDatabase.LoadAssetAtPath<DuskContentDefinition>(path);
             }
         }
 
         EditorGUI.BeginChangeCheck();
-        CRMContentDefinition newAsset = (CRMContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.DefinitionType, false);
+        DuskContentDefinition newAsset = (DuskContentDefinition)EditorGUI.ObjectField(position, label, oldAsset, reference.DefinitionType, false);
         if (EditorGUI.EndChangeCheck())
         {
             if (newAsset)

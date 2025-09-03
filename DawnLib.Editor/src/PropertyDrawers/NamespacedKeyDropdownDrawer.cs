@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.Extensions;
+using Dawn.Dusk;
+using Dawn.Editor.Extensions;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace CodeRebirthLib.Editor.PropertyDrawers;
+namespace Dawn.Editor.PropertyDrawers;
 
 [CustomPropertyDrawer(typeof(NamespacedKey<>), true)]
 [CustomPropertyDrawer(typeof(NamespacedKey), true)]
@@ -97,10 +97,10 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         }
         else if (displayOptions[newIndex] == "<Remove all unused>")
         {
-            List<CRMContentDefinition> definitions = ContentContainerEditor.FindAssetsByType<CRMContentDefinition>().ToList();
+            List<DuskContentDefinition> definitions = ContentContainerEditor.FindAssetsByType<DuskContentDefinition>().ToList();
 
             var usedNamespaces = new HashSet<string>();
-            foreach (CRMContentDefinition def in definitions)
+            foreach (DuskContentDefinition def in definitions)
             {
                 SerializedObject serializedObject = new(def);
                 SerializedProperty key = serializedObject.FindProperty("Key");
@@ -135,7 +135,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         string currentKeyName;
         bool contentDefinitionExists = false;
-        if (property.serializedObject.targetObject is CRMContentDefinition contentDefinition && fieldInfo.Name != "_tags")
+        if (property.serializedObject.targetObject is DuskContentDefinition contentDefinition && fieldInfo.Name != "_tags")
         {
             contentDefinitionExists = true;
             string defaultKey = contentDefinition.GetDefaultKey();

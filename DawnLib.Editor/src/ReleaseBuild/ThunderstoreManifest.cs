@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using CodeRebirthLib.CRMod;
+using Dawn.Dusk;
 
-namespace CodeRebirthLib.Editor.ReleaseBuild;
+namespace Dawn.Editor.ReleaseBuild;
 
-public class ThunderstoreManifest(CRModInformation modInfo, bool includeWR)
+public class ThunderstoreManifest(DuskModInformation modInfo, bool includeWR)
 {
     public string name { get; private set; } = modInfo.ModName;
     public string version_number { get; private set; } = modInfo.Version;

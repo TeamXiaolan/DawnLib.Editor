@@ -3,15 +3,15 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.Extensions;
+using Dawn.Dusk;
+using Dawn.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
 
-namespace CodeRebirthLib.Editor.ReleaseBuild;
+namespace Dawn.Editor.ReleaseBuild;
 
-[CustomEditor(typeof(CRModInformation))]
-public class CRModInformationReleaseBuild : UnityEditor.Editor
+[CustomEditor(typeof(DuskModInformation))]
+public class DuskodInformationReleaseBuild : UnityEditor.Editor
 {
     [field: SerializeField]
     public string AssetBundleFolderPath { get; private set; } = string.Empty;
@@ -20,7 +20,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
 
     private void OnEnable()
     {
-        CRModInformation modInfo = (CRModInformation)target;
+        DuskModInformation modInfo = (DuskModInformation)target;
         AssetBundleFolderPath = EditorPrefs.GetString("CRLibEditor.AssetBundlePath." + modInfo.name, string.Empty);
         BuildOutputPath = EditorPrefs.GetString("CRLibEditor.BuildOutputPath." + modInfo.name, string.Empty);
     }
@@ -28,7 +28,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();
-        CRModInformation modInfo = (CRModInformation)target;
+        DuskModInformation modInfo = (DuskModInformation)target;
         EditorGUILayout.Space(2.5f);
 
         using (new EditorGUILayout.HorizontalScope())
@@ -72,9 +72,9 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
         }
     }
 
-    private void BuildZipPackage(CRModInformation modInfo)
+    private void BuildZipPackage(DuskModInformation modInfo)
     {
-        var tempRoot = Path.Combine(Path.GetTempPath(), $"CRModPack_{Guid.NewGuid()}");
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"DuskodPack_{Guid.NewGuid()}");
         var pluginsDir = Path.Combine(tempRoot, "plugins");
         var assetsSubDir = Path.Combine(pluginsDir, "Assets");
         Directory.CreateDirectory(assetsSubDir);
@@ -132,8 +132,8 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
                     continue;
 
 
-                bool CRMWeatherInHere = TryGetWeathers(assetBundle);
-                if (CRMWeatherInHere)
+                bool DuskWeatherInHere = TryGetWeathers(assetBundle);
+                if (DuskWeatherInHere)
                 {
                     includeWR = true;
                     Debug.Log($"[CRLib Editor] Bundle '{Path.GetFileName(potentialBundleFile)}' contains a CRWeatherDefinition!");
@@ -174,7 +174,7 @@ public class CRModInformationReleaseBuild : UnityEditor.Editor
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     static bool TryGetWeathers(AssetBundle bundle)
     {
-        if (bundle.LoadAllAssets<CRMWeatherDefinition>().Length > 0)
+        if (bundle.LoadAllAssets<DuskWeatherDefinition>().Length > 0)
         {
             return true;
         }

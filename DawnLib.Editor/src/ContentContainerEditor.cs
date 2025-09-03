@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Utils;
+using Dawn.Dusk;
+using Dawn.Utils;
 using DunGen;
 using DunGen.Graph;
 using Newtonsoft.Json;
@@ -15,7 +15,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
-namespace CodeRebirthLib.Editor;
+namespace Dawn.Editor;
 
 [CustomEditor(typeof(ContentContainer))]
 public class ContentContainerEditor : UnityEditor.Editor
@@ -98,18 +98,18 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 		if (GUILayout.Button("Generate 'namespaced_keys.json'"))
 		{
-			List<CRMEnemyDefinition> enemies = FindAssetsByType<CRMEnemyDefinition>().ToList();
-			List<CRMWeatherDefinition> weathers = FindAssetsByType<CRMWeatherDefinition>().ToList();
-			List<CRMUnlockableDefinition> unlockables = FindAssetsByType<CRMUnlockableDefinition>().ToList();
-			List<CRMItemDefinition> items = FindAssetsByType<CRMItemDefinition>().ToList();
-			List<CRMMapObjectDefinition> mapObjects = FindAssetsByType<CRMMapObjectDefinition>().ToList();
-			List<CRMAchievementDefinition> achievements = FindAssetsByType<CRMAchievementDefinition>().ToList();
-			List<CRMAdditionalTilesDefinition> additionalTiles = FindAssetsByType<CRMAdditionalTilesDefinition>().ToList();
+			List<DuskEnemyDefinition> enemies = FindAssetsByType<DuskEnemyDefinition>().ToList();
+			List<DuskWeatherDefinition> weathers = FindAssetsByType<DuskWeatherDefinition>().ToList();
+			List<DuskUnlockableDefinition> unlockables = FindAssetsByType<DuskUnlockableDefinition>().ToList();
+			List<DuskItemDefinition> items = FindAssetsByType<DuskItemDefinition>().ToList();
+			List<DuskMapObjectDefinition> mapObjects = FindAssetsByType<DuskMapObjectDefinition>().ToList();
+			List<DuskAchievementDefinition> achievements = FindAssetsByType<DuskAchievementDefinition>().ToList();
+			List<DuskAdditionalTilesDefinition> additionalTiles = FindAssetsByType<DuskAdditionalTilesDefinition>().ToList();
 
 			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			void Build<TDef>(IEnumerable<TDef> defs, string suffix, string typeTag, Func<TDef, string> getEntityName, Func<TDef, NamespacedKey> getKey) where TDef : CRMContentDefinition
+			void Build<TDef>(IEnumerable<TDef> defs, string suffix, string typeTag, Func<TDef, string> getEntityName, Func<TDef, NamespacedKey> getKey) where TDef : DuskContentDefinition
 			{
 				foreach (TDef def in defs)
 				{
@@ -132,9 +132,9 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(weathers,	"WeatherKeys", "CRWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(unlockables, "UnlockableItemKeys","CRUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
-			Build(mapObjects, "MapObjectKeys", "CRMapObjectInfo", d => d.EntityNameReference, d => d.Key);
+			Build(mapObjects, "MapObjectKeys", "DuskapObjectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(additionalTiles, "AdditionalTilesKeys", "CRAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
-			Build(achievements, "AchievementKeys", "CodeRebirthLib.CRMod.CRMAchievementDefinition", d => d.EntityNameReference, d => d.Key);
+			Build(achievements, "AchievementKeys", "CodeRebirthLib.Duskod.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
@@ -226,7 +226,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 				item => item.itemName,
 				obj => obj);
 
-			BuildVanilla(levels, "MoonKeys", "CRMoonInfo",
+			BuildVanilla(levels, "MoonKeys", "DuskoonInfo",
 				l => l.PlanetName,
 				obj => obj);
 
@@ -242,7 +242,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 				a => a.name,
 				obj => obj);
 
-			BuildVanilla(mapObjects, "MapObjectKeys", "CRMapObjectInfo",
+			BuildVanilla(mapObjects, "MapObjectKeys", "DuskapObjectInfo",
 				m => m.name,
 				obj => obj);
 

@@ -1,10 +1,10 @@
-﻿using CodeRebirthLib.CRMod;
+﻿using Dawn.Dusk;
 using UnityEditor;
 using UnityEngine;
 
-namespace CodeRebirthLib.Editor.PropertyDrawers;
+namespace Dawn.Editor.PropertyDrawers;
 
-[CustomPropertyDrawer(typeof(CRDynamicConfig))]
+[CustomPropertyDrawer(typeof(DuskDynamicConfig))]
 public class DynamicConfigDrawer : PropertyDrawer
 {
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
@@ -23,28 +23,28 @@ public class DynamicConfigDrawer : PropertyDrawer
         EditorGUI.PropertyField(typeRect, property.FindPropertyRelative("DynamicConfigType"), new GUIContent("Type"));
 
         SerializedProperty dynamicTypeProp = property.FindPropertyRelative("DynamicConfigType");
-        CRDynamicConfigType configType = (CRDynamicConfigType)dynamicTypeProp.enumValueIndex;
+        DuskDynamicConfigType configType = (DuskDynamicConfigType)dynamicTypeProp.enumValueIndex;
         switch (configType)
         {
-            case CRDynamicConfigType.String:
+            case DuskDynamicConfigType.String:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultString"), new GUIContent("Default Value"));
                 break;
-            case CRDynamicConfigType.Int:
+            case DuskDynamicConfigType.Int:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultInt"), new GUIContent("Default Value"));
                 break;
-            case CRDynamicConfigType.Float:
+            case DuskDynamicConfigType.Float:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultFloat"), new GUIContent("Default Value"));
                 break;
-            case CRDynamicConfigType.Bool:
+            case DuskDynamicConfigType.Bool:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultBool"), new GUIContent("Default Value"));
                 break;
-            case CRDynamicConfigType.BoundedRange:
+            case DuskDynamicConfigType.BoundedRange:
                 var boundedRangeProperty = property.FindPropertyRelative("defaultBoundedRange");
                 if (boundedRangeProperty.isExpanded)
                     descRect = new Rect(position.x, position.y + (lineHeight + spacing) * 5, position.width, lineHeight);
                 EditorGUI.PropertyField(defaultRect, boundedRangeProperty, new GUIContent("Default Value"), true);
                 break;
-            case CRDynamicConfigType.AnimationCurve:
+            case DuskDynamicConfigType.AnimationCurve:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultAnimationCurve"), new GUIContent("Default Value"));
                 break;
         }
@@ -59,8 +59,8 @@ public class DynamicConfigDrawer : PropertyDrawer
         float spacing = EditorGUIUtility.standardVerticalSpacing;
         // Four lines (Key, Type, Default Value, Description) plus spacing.
         SerializedProperty dynamicTypeProp = property.FindPropertyRelative("DynamicConfigType");
-        CRDynamicConfigType configType = (CRDynamicConfigType)dynamicTypeProp.enumValueIndex;
+        DuskDynamicConfigType configType = (DuskDynamicConfigType)dynamicTypeProp.enumValueIndex;
         var boundedRangeProperty = property.FindPropertyRelative("defaultBoundedRange");
-        return (lineHeight * (configType == CRDynamicConfigType.BoundedRange && boundedRangeProperty.isExpanded ? 6.25f : 4)) + (spacing * 3);
+        return (lineHeight * (configType == DuskDynamicConfigType.BoundedRange && boundedRangeProperty.isExpanded ? 6.25f : 4)) + (spacing * 3);
     }
 }

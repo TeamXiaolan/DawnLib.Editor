@@ -1,7 +1,9 @@
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.Extensions;
+using Dawn.Dusk;
+using Dawn.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
+
+namespace Dawn.Editor.PropertyDrawers;
 
 [CustomPropertyDrawer(typeof(EntityData), true)]
 public class EntityDataDrawer : PropertyDrawer

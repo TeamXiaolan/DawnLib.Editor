@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeRebirthLib.Editor", "CodeRebirthLib.Editor/CodeRebirthLib.Editor.csproj", "{58EE81D3-E08A-4B8D-ACE8-31D31505F39F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DawnLib.Editor", "DawnLib.Editor\DawnLib.Editor.csproj", "{58EE81D3-E08A-4B8D-ACE8-31D31505F39F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,21 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <AssemblyName>com.github.xuuxiaolan.coderebirthlib.editor</AssemblyName>
-        <Product>CodeRebirthLib.Editor</Product>
+        <AssemblyName>com.github.teamxiaolan.dawnlib.editor</AssemblyName>
+        <Product>Dawn.Editor</Product>
     </PropertyGroup>
 
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
-        <RootNamespace>CodeRebirthLib.Editor</RootNamespace>
+        <RootNamespace>Dawn.Editor</RootNamespace>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
     
     <ItemGroup>
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
-      <PackageReference Include="XuXiaolan.CodeRebirthLib" Version="0.10.0" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.1.0" PrivateAssets="all" Publicize="true" />
       <PackageReference Include="mrov.WeatherRegistry" Publicize="true" Version="0.7.1" PrivateAssets="all" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <Reference Include="UnityEditor" PrivateAssets="all">

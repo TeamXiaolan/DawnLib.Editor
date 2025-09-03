@@ -1,13 +1,14 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.Extensions;
+using Dawn.Dusk;
+using Dawn.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
+
+namespace Dawn.Editor.PropertyDrawers;
 
 [CustomPropertyDrawer(typeof(AssetBundleData), true)]
 public class AssetBundleDataDrawer : PropertyDrawer
@@ -146,27 +147,27 @@ public class AssetBundleDataDrawer : PropertyDrawer
                     entry.HasAssertFieldNotNull = fieldInfo.GetCustomAttribute<AssertFieldNotNull>() != null;
                     entry.IsStringField = fieldInfo.FieldType == typeof(string);
 
-                    if (typeof(CRMEnemyReference).IsAssignableFrom(fieldInfo.FieldType))
+                    if (typeof(DuskEnemyReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
                         entry.ReferenceKind = ReferenceKind.Enemy;
                     }
-                    else if (typeof(CRMItemReference).IsAssignableFrom(fieldInfo.FieldType))
+                    else if (typeof(DuskItemReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
                         entry.ReferenceKind = ReferenceKind.Item;
                     }
-                    else if (typeof(CRMMapObjectReference).IsAssignableFrom(fieldInfo.FieldType))
+                    else if (typeof(DuskMapObjectReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
                         entry.ReferenceKind = ReferenceKind.MapObject;
                     }
-                    else if (typeof(CRMUnlockableReference).IsAssignableFrom(fieldInfo.FieldType))
+                    else if (typeof(DuskUnlockableReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
                         entry.ReferenceKind = ReferenceKind.Unlockable;
                     }
-                    else if (typeof(CRMAdditionalTilesReference).IsAssignableFrom(fieldInfo.FieldType))
+                    else if (typeof(DuskAdditionalTilesReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
                         entry.ReferenceKind = ReferenceKind.AdditionalTiles;
                     }
-                    else if (typeof(CRMContentReference).IsAssignableFrom(fieldInfo.FieldType))
+                    else if (typeof(DuskContentReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
                         entry.ReferenceKind = ReferenceKind.OtherContent;
                     }
@@ -446,11 +447,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                     {
                         case ReferenceKind.Enemy:
                         {
-                            CRMEnemyDefinition? def = AssetValidationCache.LoadAtPathCached<CRMEnemyDefinition>(path);
+                            DuskEnemyDefinition? def = AssetValidationCache.LoadAtPathCached<DuskEnemyDefinition>(path);
                             if (def == null)
                             {
                                 invalidHere = true;
-                                message = MissingDef(path, "CRMEnemyDefinition");
+                                message = MissingDef(path, "DuskEnemyDefinition");
                             }
                             else
                             {
@@ -469,11 +470,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                         }
                         case ReferenceKind.Item:
                         {
-                            CRMItemDefinition? def = AssetValidationCache.LoadAtPathCached<CRMItemDefinition>(path);
+                            DuskItemDefinition? def = AssetValidationCache.LoadAtPathCached<DuskItemDefinition>(path);
                             if (def == null)
                             {
                                 invalidHere = true;
-                                message = MissingDef(path, "CRMItemDefinition");
+                                message = MissingDef(path, "DuskItemDefinition");
                             }
                             else
                             {
@@ -492,11 +493,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                         }
                         case ReferenceKind.MapObject:
                         {
-                            CRMMapObjectDefinition? def = AssetValidationCache.LoadAtPathCached<CRMMapObjectDefinition>(path);
+                            DuskMapObjectDefinition? def = AssetValidationCache.LoadAtPathCached<DuskMapObjectDefinition>(path);
                             if (def == null)
                             {
                                 invalidHere = true;
-                                message = MissingDef(path, "CRMMapObjectDefinition");
+                                message = MissingDef(path, "DuskMapObjectDefinition");
                             }
                             else if (def.GameObject == null)
                             {
@@ -507,11 +508,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                         }
                         case ReferenceKind.Unlockable:
                         {
-                            CRMUnlockableDefinition? def = AssetValidationCache.LoadAtPathCached<CRMUnlockableDefinition>(path);
+                            DuskUnlockableDefinition? def = AssetValidationCache.LoadAtPathCached<DuskUnlockableDefinition>(path);
                             if (def == null)
                             {
                                 invalidHere = true;
-                                message = MissingDef(path, "CRMUnlockableDefinition");
+                                message = MissingDef(path, "DuskUnlockableDefinition");
                             }
                             else if (string.IsNullOrEmpty(def.UnlockableItem.unlockableName))
                             {
@@ -522,11 +523,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                         }
                         case ReferenceKind.AdditionalTiles:
                         {
-                            CRMAdditionalTilesDefinition? def = AssetValidationCache.LoadAtPathCached<CRMAdditionalTilesDefinition>(path);
+                            DuskAdditionalTilesDefinition? def = AssetValidationCache.LoadAtPathCached<DuskAdditionalTilesDefinition>(path);
                             if (def == null)
                             {
                                 invalidHere = true;
-                                message = MissingDef(path, "CRMAdditionalTilesDefinition");
+                                message = MissingDef(path, "DuskAdditionalTilesDefinition");
                             }
                             else if (def.TilesToAdd == null)
                             {
@@ -539,11 +540,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                         {
                             if (WRExists)
                             {
-                                CRMContentDefinition? def = AssetValidationCache.LoadAtPathCached<CRMContentDefinition>(path);
+                                DuskContentDefinition? def = AssetValidationCache.LoadAtPathCached<DuskContentDefinition>(path);
                                 if (def == null)
                                 {
                                     invalidHere = true;
-                                    message = MissingDef(path, "CRMContentDefinition");
+                                    message = MissingDef(path, "DuskContentDefinition");
                                 }
                                 else if (WeatherRegistryChecks(def, out string wrMsg))
                                 {
@@ -674,10 +675,10 @@ public class AssetBundleDataDrawer : PropertyDrawer
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    static bool WeatherRegistryChecks(CRMContentDefinition contentDefinition, out string message)
+    static bool WeatherRegistryChecks(DuskContentDefinition contentDefinition, out string message)
     {
         message = string.Empty;
-        if (contentDefinition is CRMWeatherDefinition weatherDefinition)
+        if (contentDefinition is DuskWeatherDefinition weatherDefinition)
         {
             if (weatherDefinition.Weather == null)
             {

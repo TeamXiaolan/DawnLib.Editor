@@ -1,10 +1,10 @@
 using System;
-using CodeRebirthLib.CRMod;
-using CodeRebirthLib.Editor.Extensions;
+using Dawn.Dusk;
+using Dawn.Editor.Extensions;
 using UnityEditor;
 using UnityEngine;
 
-namespace CodeRebirthLib.Editor.PropertyDrawers;
+namespace Dawn.Editor.PropertyDrawers;
 
 [CustomPropertyDrawer(typeof(AssetBundleReference), true)]
 public class AssetBundleReferenceDropdownDrawer : PropertyDrawer

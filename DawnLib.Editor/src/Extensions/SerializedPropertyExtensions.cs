@@ -4,7 +4,7 @@ using System.Collections;
 using System.Reflection;
 using UnityEditor;
 
-namespace CodeRebirthLib.Editor.Extensions;
+namespace Dawn.Editor.Extensions;
 
 static class SerializedPropertyExtensions
 {

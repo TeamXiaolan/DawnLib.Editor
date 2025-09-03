@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace CodeRebirthLib.Editor.Extensions;
+namespace Dawn.Editor.Extensions;
 
 public static class ExtensionMethod
 {
