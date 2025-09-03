@@ -134,7 +134,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(mapObjects, "MapObjectKeys", "DuskapObjectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(additionalTiles, "AdditionalTilesKeys", "CRAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
-			Build(achievements, "AchievementKeys", "CodeRebirthLib.Duskod.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
+			Build(achievements, "AchievementKeys", "DawnLib.Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");

@@ -2,25 +2,25 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="03d97c2d-ab89-4ec9-bffd-98afea90c447" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.CodeRebirthLib.Editor/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.CodeRebirthLib.Editor/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.CodeRebirthLib.Editor/.idea/encodings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.CodeRebirthLib.Editor/.idea/indexLayout.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.CodeRebirthLib.Editor/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor.sln" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/CodeRebirthLib.Editor.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/DawnLib.Editor.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/CodeRebirthLib.Editor.csproj.user.template" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/ContentContainerEditor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ContentContainerEditor.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/Extensions/SerializedPropertyExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/Extensions/SerializedPropertyExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/Extensions/Texture2DExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/Extensions/Texture2DExtensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/PropertyDrawers/AssetBundleDataDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/AssetBundleDataDrawer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/PropertyDrawers/AssetBundleReferenceDropdownDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/AssetBundleReferenceDropdownDrawer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/PropertyDrawers/DynamicConfigDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/DynamicConfigDrawer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/PropertyDrawers/EntityDataDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/EntityDataDrawer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/PropertyDrawers/NamespacedKeyDropdownDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/NamespacedKeyDropdownDrawer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/ReleaseBuild/CRModInformationReleaseBuild.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ReleaseBuild/CRModInformationReleaseBuild.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/ReleaseBuild/ThunderstoreManifest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ReleaseBuild/ThunderstoreManifest.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CodeRebirthLib.Editor/src/ScriptableObjectReferences/CRContentReferenceDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ScriptableObjectReferences/CRContentReferenceDrawer.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/.idea.DawnLib.Editor/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.DawnLib.Editor/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.DawnLib.Editor/.idea/encodings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.DawnLib.Editor/.idea/indexLayout.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.DawnLib.Editor/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor.sln" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor.sln" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/DawnLib.Editor.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/DawnLib.Editor.csproj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/DawnLib.Editor.csproj.user.template" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/ContentContainerEditor.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ContentContainerEditor.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/Extensions/SerializedPropertyExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/Extensions/SerializedPropertyExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/Extensions/Texture2DExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/Extensions/Texture2DExtensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/AssetBundleDataDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/AssetBundleDataDrawer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/AssetBundleReferenceDropdownDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/AssetBundleReferenceDropdownDrawer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/DynamicConfigDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/DynamicConfigDrawer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/EntityDataDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/EntityDataDrawer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/NamespacedKeyDropdownDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/PropertyDrawers/NamespacedKeyDropdownDrawer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/ReleaseBuild/CRModInformationReleaseBuild.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ReleaseBuild/CRModInformationReleaseBuild.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/ReleaseBuild/ThunderstoreManifest.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ReleaseBuild/ThunderstoreManifest.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DawnLib.Editor/src/ScriptableObjectReferences/CRContentReferenceDrawer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DawnLib.Editor/src/ScriptableObjectReferences/CRContentReferenceDrawer.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -43,7 +43,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "E:/LethalCompanyModding/DawnLib.Editor/CodeRebirthLib.Editor.sln",
+    "last_opened_file_path": "E:/LethalCompanyModding/DawnLib.Editor/DawnLib.Editor.sln",
     "nodejs_package_manager_path": "npm",
     "vue.rearranger.settings.migration": "true"
   }

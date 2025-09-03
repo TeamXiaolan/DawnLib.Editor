@@ -2,7 +2,7 @@
 /shelf/
 /workspace.xml
 # Rider ignored files
-/.idea.CodeRebirthLib.Editor.iml
+/.idea.DawnLib.Editor.iml
 /contentModel.xml
 /modules.xml
 /projectSettingsUpdater.xml

@@ -23,7 +23,7 @@ public class ThunderstoreManifest(DuskModInformation modInfo, bool includeWR)
             if (includeWR && dependency.Contains("mrov-WeatherRegistry", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            if (dependency.Contains("XuXiaolan-CodeRebirthLib", StringComparison.OrdinalIgnoreCase))
+            if (dependency.Contains("TeamXiaolan-DawnLib", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             if (dependency.Contains("BepInEx-BepInExPack", StringComparison.OrdinalIgnoreCase))
@@ -36,7 +36,7 @@ public class ThunderstoreManifest(DuskModInformation modInfo, bool includeWR)
         {
             dependencies.Add("mrov-WeatherRegistry-0.6.1");
         }
-        dependencies.Add("XuXiaolan-CodeRebirthLib-0.9.1");
+        dependencies.Add("TeamXiaolan-DawnLib-0.10.0");
         return dependencies;
     }
 }
