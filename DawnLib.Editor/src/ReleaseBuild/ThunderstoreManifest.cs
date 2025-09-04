@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Dawn.Dusk;
+using Dusk;
 
 namespace Dawn.Editor.ReleaseBuild;
 
