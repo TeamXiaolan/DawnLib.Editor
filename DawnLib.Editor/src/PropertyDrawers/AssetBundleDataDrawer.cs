@@ -9,10 +9,46 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
-
 [CustomPropertyDrawer(typeof(AssetBundleData), true)]
 public class AssetBundleDataDrawer : PropertyDrawer
 {
+    static class ValidationSettings
+    {
+        const string Key_AllOff = "Dawn.AssetBundleDataDrawer.DisableAllValidation";
+        const string Key_HeavyOff = "Dawn.AssetBundleDataDrawer.DisableHeavyValidation";
+
+        static bool? _allOffCache;
+        static bool? _heavyOffCache;
+
+        public static bool DisableAll
+        {
+            get
+            {
+                _allOffCache ??= EditorPrefs.GetBool(Key_AllOff, false);
+                return _allOffCache.Value;
+            }
+            set
+            {
+                _allOffCache = value;
+                EditorPrefs.SetBool(Key_AllOff, value);
+            }
+        }
+
+        public static bool DisableHeavy
+        {
+            get
+            {
+                _heavyOffCache ??= EditorPrefs.GetBool(Key_HeavyOff, false);
+                return _heavyOffCache.Value;
+            }
+            set
+            {
+                _heavyOffCache = value;
+                EditorPrefs.SetBool(Key_HeavyOff, value);
+            }
+        }
+    }
+
     static readonly string[] EntityLists =
     [
         "weathers", "enemies", "unlockables", "items", "mapObjects", "dungeons"
@@ -276,7 +312,10 @@ public class AssetBundleDataDrawer : PropertyDrawer
         List<(string path, string message)> invalidPathsWithMessage = new();
         bool makeHeaderRed = false;
 
-        if (property.GetTargetObjectOfProperty() is AssetBundleData assetBundleData)
+        bool stopAll = ValidationSettings.DisableAll;
+        bool stopHeavy = ValidationSettings.DisableHeavy;
+
+        if (!stopAll && property.GetTargetObjectOfProperty() is AssetBundleData assetBundleData)
         {
             makeHeaderRed |= ValidateSerializedObject(property, assetBundleData, invalidPathsWithMessage);
 
@@ -302,34 +341,65 @@ public class AssetBundleDataDrawer : PropertyDrawer
         }
 
         string tooltip = string.Empty;
-        foreach ((string _, string message) in invalidPathsWithMessage)
+        if (!stopAll)
         {
-            makeHeaderRed = true;
-            if (string.IsNullOrEmpty(message))
-                continue;
-            if (!string.IsNullOrEmpty(tooltip))
+            foreach ((string _, string message) in invalidPathsWithMessage)
             {
-                tooltip += "\n";
+                makeHeaderRed = true;
+                if (string.IsNullOrEmpty(message))
+                    continue;
+                if (!string.IsNullOrEmpty(tooltip))
+                    tooltip += "\n";
+                tooltip += message;
             }
-
-            tooltip += message;
         }
 
-        GUIStyle headerStyle = makeHeaderRed ? AssetValidationCache.GetRedFoldoutStyle() : EditorStyles.foldout;
+        GUIStyle headerStyle = (!stopAll && makeHeaderRed) ? AssetValidationCache.GetRedFoldoutStyle() : EditorStyles.foldout;
 
         float headerHeight = EditorGUI.GetPropertyHeight(property, label, includeChildren: false);
         Rect headerRect = new(position.x, position.y, position.width, headerHeight);
 
         using (new EditorGUI.PropertyScope(headerRect, label, property))
         {
+            const float pad = 2f;
+            const float btnW = 90f;
+            const float btnH = 16f;
+
+            Rect stopAllRect = new Rect(headerRect.xMax - btnW, headerRect.y + (headerHeight - btnH) * 0.5f, btnW, btnH);
+            Rect lightModeRect = new Rect(stopAllRect.xMin - pad - btnW, stopAllRect.y, btnW, btnH);
+            Rect foldoutRect = new Rect(headerRect.x, headerRect.y, lightModeRect.xMin - headerRect.x - pad, headerHeight);
+
             label = new GUIContent(label.text, tooltip);
-            property.isExpanded = EditorGUI.Foldout(headerRect, property.isExpanded, label, true, headerStyle);
+            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, label, true, headerStyle);
+
+            using (new GUIBackgroundScope(stopHeavy ? new Color(0.85f, 0.2f, 0.2f) : new Color(0.35f, 0.6f, 0.35f)))
+            {
+                bool newStopHeavy = GUI.Toggle(lightModeRect, stopHeavy, new GUIContent("LIGHT MODE",
+                    "ON: Only lightweight checks (null/empty) run.\nOFF: Run full validations."), EditorStyles.miniButton);
+                if (newStopHeavy != stopHeavy)
+                {
+                    ValidationSettings.DisableHeavy = newStopHeavy;
+                    GUIUtility.keyboardControl = 0;
+                    GUI.changed = true;
+                }
+            }
+
+            using (new GUIBackgroundScope(stopAll ? new Color(0.85f, 0.2f, 0.2f) : new Color(0.35f, 0.6f, 0.35f)))
+            {
+                bool newStopAll = GUI.Toggle(stopAllRect, stopAll, new GUIContent("STOP ALL",
+                    "ON: Disable ALL validation and highlights.\nOFF: Enable validation."), EditorStyles.miniButton);
+                if (newStopAll != stopAll)
+                {
+                    ValidationSettings.DisableAll = newStopAll;
+                    GUIUtility.keyboardControl = 0;
+                    GUI.changed = true;
+                }
+            }
         }
 
         if (!property.isExpanded)
             return;
 
-        // Children
         Rect childRect = new(position.x, position.y + headerHeight, position.width, 0f);
         using (new EditorGUI.IndentLevelScope(1))
         {
@@ -344,11 +414,14 @@ public class AssetBundleDataDrawer : PropertyDrawer
                 float height = EditorGUI.GetPropertyHeight(iterator, true);
                 childRect.height = height;
 
-                bool isInvalidHere = IsPathOrAncestorInvalid(iterator.propertyPath, invalidPathsWithMessage);
-                if (isInvalidHere)
+                if (!ValidationSettings.DisableAll)
                 {
-                    Rect border = new Rect(childRect.x, childRect.y, 2f, height);
-                    EditorGUI.DrawRect(border, Color.red);
+                    bool isInvalidHere = IsPathOrAncestorInvalid(iterator.propertyPath, invalidPathsWithMessage);
+                    if (isInvalidHere)
+                    {
+                        Rect border = new Rect(childRect.x, childRect.y, 2f, height);
+                        EditorGUI.DrawRect(border, Color.red);
+                    }
                 }
 
                 EditorGUI.PropertyField(childRect, iterator, true);
@@ -366,6 +439,9 @@ public class AssetBundleDataDrawer : PropertyDrawer
     static bool ValidateSerializedWithDescriptor(SerializedProperty objProp, AssetBundleData assetBundleData, TypeChecksDescriptor descriptor, List<(string path, string message)> invalidPathsWithMessage)
     {
         bool anyInvalid = false;
+
+        if (ValidationSettings.DisableAll)
+            return false;
 
         UnityEngine.Object target = objProp.serializedObject.targetObject;
         AssetValidationCache.PerObjectCache cache = AssetValidationCache.Get(target);
@@ -408,6 +484,9 @@ public class AssetBundleDataDrawer : PropertyDrawer
                     MarkNullReference(objProp, entryDesc.FieldName, entryDesc.ReferenceKind, invalidPathsWithMessage);
                     continue;
                 }
+
+                if (ValidationSettings.DisableHeavy)
+                    continue;
 
                 string guid = guidProp.stringValue;
                 SerializedProperty parentProp = objProp.FindPropertyRelative(entryDesc.FieldName);
@@ -702,4 +781,15 @@ public class AssetBundleDataDrawer : PropertyDrawer
     }
 
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => EditorGUI.GetPropertyHeight(property, label, true);
+
+    readonly struct GUIBackgroundScope : IDisposable
+    {
+        readonly Color _prev;
+        public GUIBackgroundScope(Color color)
+        {
+            _prev = GUI.backgroundColor;
+            GUI.backgroundColor = color;
+        }
+        public void Dispose() => GUI.backgroundColor = _prev;
+    }
 }
