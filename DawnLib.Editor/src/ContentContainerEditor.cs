@@ -20,8 +20,6 @@ namespace Dawn.Editor;
 [CustomEditor(typeof(ContentContainer))]
 public class ContentContainerEditor : UnityEditor.Editor
 {
-	static Dictionary<AssetBundleData, List<string>> fails = [];
-
 	private static readonly Regex NamespacedKeyRegex = new(@"[?!.\n\t""`\[\]'-]");
 
 	private static readonly Dictionary<char, string> NumberWords = new()
@@ -105,6 +103,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<DuskMapObjectDefinition> mapObjects = FindAssetsByType<DuskMapObjectDefinition>().ToList();
 			List<DuskAchievementDefinition> achievements = FindAssetsByType<DuskAchievementDefinition>().ToList();
 			List<DuskAdditionalTilesDefinition> additionalTiles = FindAssetsByType<DuskAdditionalTilesDefinition>().ToList();
+			List<DuskVehicleDefinition> vehicles = FindAssetsByType<DuskVehicleDefinition>().ToList();
 
 			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
@@ -128,13 +127,83 @@ public class ContentContainerEditor : UnityEditor.Editor
 				}
 			}
 
-			Build(enemies, "EnemyKeys", "CREnemyInfo", d => d.EntityNameReference, d => d.Key);
-			Build(weathers,	"WeatherKeys", "CRWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
-			Build(unlockables, "UnlockableItemKeys","CRUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
-			Build(items, "ItemKeys", "CRItemInfo", d => d.EntityNameReference, d => d.Key);
-			Build(mapObjects, "MapObjectKeys", "DuskapObjectInfo", d => d.EntityNameReference, d => d.Key);
-			Build(additionalTiles, "AdditionalTilesKeys", "CRAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
+			void BuildNonDuskNonVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?> assetSelector, bool bypassCheck = false)
+			{
+				string nsPrefix = "place_holder";
+
+				TextPromptWindow.Show("Namespace for the content (i.e. lethal_company):", nsPrefix, prefix =>
+				{
+					nsPrefix = prefix;
+
+					if (!definitionsDict.TryGetValue(className, out var bucket))
+						definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
+
+					foreach (var it in src)
+					{
+						Object? asset = null;
+
+						if (assetSelector != null)
+						{
+							asset = assetSelector(it);
+						}
+						else if (it is Object unityObj)
+						{
+							asset = unityObj;
+						}
+
+						if (asset == null && !bypassCheck)
+							continue;
+
+						if (!bypassCheck)
+						{
+							string assetPath = AssetDatabase.GetAssetPath(asset);
+							if (string.IsNullOrEmpty(assetPath) || assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
+								continue;
+						}
+
+						string displayName = nameGetter(it);
+						Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
+
+						string csharpName = string.Empty;
+						if (it is TileSet tileSet)
+						{
+							csharpName = AdditionalTilesRegistrationHandler.FormatTileSetName(tileSet);
+						}
+						else if (it is DungeonArchetype dungeonArchetype)
+						{
+							csharpName = AdditionalTilesRegistrationHandler.FormatArchetypeName(dungeonArchetype);
+						}
+						else if (it is DungeonFlow dungeonFlow)
+						{
+							csharpName = AdditionalTilesRegistrationHandler.FormatFlowName(dungeonFlow);
+						}
+						else
+						{
+							csharpName = NormalizeNamespacedKey(displayName, true);
+						}
+
+						if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
+							continue;
+
+
+						string nsKey = nsPrefix + ":" + NormalizeNamespacedKey(displayName, false);
+
+						bucket[csharpName] = nsKey;
+
+						Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
+					}
+				});
+			}
+
+			Build(enemies, "EnemyKeys", "DawnEnemyInfo", d => d.EntityNameReference, d => d.Key);
+			Build(weathers,	"WeatherKeys", "DawnWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
+			Build(unlockables, "UnlockableItemKeys","DawnUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
+			Build(items, "ItemKeys", "DawnItemInfo", d => d.EntityNameReference, d => d.Key);
+			Build(mapObjects, "MapObjectKeys", "DawnMapObjectInfo", d => d.EntityNameReference, d => d.Key);
+			Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
 			Build(achievements, "AchievementKeys", "DawnLib.Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
+			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
+			BuildNonDuskNonVanilla(FindAssetsByType<SelectableLevel>(), "MoonKeys", "DawnMoonInfo", d => d.name, d => d);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
@@ -214,44 +283,44 @@ public class ContentContainerEditor : UnityEditor.Editor
 				}
 			}
 
-			BuildVanilla(enemies, "EnemyKeys", "CREnemyInfo",
+			BuildVanilla(enemies, "EnemyKeys", "DawnEnemyInfo",
 				enemyType => enemyType.enemyName,
 				obj => obj);
 
-			BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "CRUnlockableItemInfo",
+			BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "DawnUnlockableItemInfo",
 				u => u.unlockableName,
 				obj => unlockablesList);
 
-			BuildVanilla(items, "ItemKeys", "CRItemInfo",
+			BuildVanilla(items, "ItemKeys", "DawnItemInfo",
 				item => item.itemName,
 				obj => obj);
 
-			BuildVanilla(levels, "MoonKeys", "DuskoonInfo",
+			BuildVanilla(levels, "MoonKeys", "DawnMoonInfo",
 				l => l.PlanetName,
 				obj => obj);
 
-			BuildVanilla(dungeons, "DungeonKeys", "CRDungeonInfo",
+			BuildVanilla(dungeons, "DungeonKeys", "DawnDungeonInfo",
 				d => d.name,
 				obj => obj);
 			
-			BuildVanilla(tilesets, "DungeonTileSetKeys", "CRTileSetInfo",
+			BuildVanilla(tilesets, "DungeonTileSetKeys", "DawnTileSetInfo",
 				t => t.name,
 				obj => obj);
 
-			BuildVanilla(archetypes, "DungeonArchetypeKeys", "CRArchetypeInfo",
+			BuildVanilla(archetypes, "DungeonArchetypeKeys", "DawnArchetypeInfo",
 				a => a.name,
 				obj => obj);
 
-			BuildVanilla(mapObjects, "MapObjectKeys", "DuskapObjectInfo",
+			BuildVanilla(mapObjects, "MapObjectKeys", "DawnMapObjectInfo",
 				m => m.name,
 				obj => obj);
 
 			List<WeatherEffect> weathers = LoadSampleSceneRelayTimeOfDay().effects.ToList();
 
-			BuildVanilla(weathers, "WeatherKeys", "CRWeatherInfo",
+			BuildVanilla(weathers, "WeatherKeys", "DawnWeatherInfo",
 				w => w.name,
 				obj => null,
-				true); // there is no asset for this so idk just gonna use the unlockablesList one to fake it.
+				true);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla_namespaced_keys", "json");

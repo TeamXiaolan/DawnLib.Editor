@@ -192,11 +192,21 @@ public static class EditorJsonStringList
 {
     public static List<string> GetList()
     {
-        if (!File.Exists(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json")))
+        if (!File.Exists(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json")))
         {
+            if (File.Exists(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json")))
+            {
+                List<string>? listNewOfNamespaces = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json")));
+                listNewOfNamespaces ??= new();
+                listNewOfNamespaces.RemoveAll(string.IsNullOrWhiteSpace);
+                string text = JsonConvert.SerializeObject(listNewOfNamespaces, Formatting.Indented);
+                File.WriteAllText(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json"), text);
+                File.Delete(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json"));
+                return listNewOfNamespaces;
+            }
             return new();
         }
-        List<string>? listOfNamespaces = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json")));
+        List<string>? listOfNamespaces = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json")));
         listOfNamespaces ??= new();
 
         listOfNamespaces.RemoveAll(string.IsNullOrWhiteSpace);
@@ -213,7 +223,7 @@ public static class EditorJsonStringList
         {
             list.Add(value);
 			string text = JsonConvert.SerializeObject(list, Formatting.Indented);
-			File.WriteAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json"), text);
+			File.WriteAllText(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json"), text);
         }
     }
 
@@ -222,6 +232,6 @@ public static class EditorJsonStringList
         List<string> currentList = GetList();
         currentList.RemoveAll(list.Contains);
         string text = JsonConvert.SerializeObject(currentList, Formatting.Indented);
-        File.WriteAllText(Path.Combine(Application.dataPath, "code_rebirth_lib_namespaces.json"), text);
+        File.WriteAllText(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json"), text);
     }
 }

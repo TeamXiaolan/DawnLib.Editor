@@ -51,7 +51,7 @@ public class AssetBundleDataDrawer : PropertyDrawer
 
     static readonly string[] EntityLists =
     [
-        "weathers", "enemies", "unlockables", "items", "mapObjects", "dungeons"
+        "weathers", "enemies", "unlockables", "items", "mapObjects", "dungeons", "vehicles"
     ];
 
     static readonly bool WRExists = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "WeatherRegistry");
@@ -63,7 +63,8 @@ public class AssetBundleDataDrawer : PropertyDrawer
         Item,
         MapObject,
         Unlockable,
-        AdditionalTiles,
+        AdditionalTile,
+        Vehicle,
         OtherContent
     }
 
@@ -201,7 +202,11 @@ public class AssetBundleDataDrawer : PropertyDrawer
                     }
                     else if (typeof(DuskAdditionalTilesReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
-                        entry.ReferenceKind = ReferenceKind.AdditionalTiles;
+                        entry.ReferenceKind = ReferenceKind.AdditionalTile;
+                    }
+                    else if (typeof(DuskVehicleReference).IsAssignableFrom(fieldInfo.FieldType))
+                    {
+                        entry.ReferenceKind = ReferenceKind.Vehicle;
                     }
                     else if (typeof(DuskContentReference).IsAssignableFrom(fieldInfo.FieldType))
                     {
@@ -600,7 +605,7 @@ public class AssetBundleDataDrawer : PropertyDrawer
                             }
                             break;
                         }
-                        case ReferenceKind.AdditionalTiles:
+                        case ReferenceKind.AdditionalTile:
                         {
                             DuskAdditionalTilesDefinition? def = AssetValidationCache.LoadAtPathCached<DuskAdditionalTilesDefinition>(path);
                             if (def == null)
@@ -612,6 +617,31 @@ public class AssetBundleDataDrawer : PropertyDrawer
                             {
                                 invalidHere = true;
                                 message = "TilesToAdd on " + def.name + " does not exist.";
+                            }
+                            break;
+                        }
+                        case ReferenceKind.Vehicle:
+                        {
+                            DuskVehicleDefinition? def = AssetValidationCache.LoadAtPathCached<DuskVehicleDefinition>(path);
+                            if (def == null)
+                            {
+                                invalidHere = true;
+                                message = MissingDef(path, "DuskVehicleDefinition");
+                            }
+                            else if (def.BuyableVehiclePreset == null)
+                            {
+                                invalidHere = true;
+                                message = "Vehicle preset on " + def.name + " does not exist.";
+                            }
+                            else if (def.BuyableVehiclePreset.VehiclePrefab == null)
+                            {
+                                invalidHere = true;
+                                message = "Vehicle prefab on vehicle preset on " + def.name + " does not exist.";
+                            }
+                            else if (def.BuyableVehiclePreset.StationPrefab == null)
+                            {
+                                invalidHere = true;
+                                message = "Station prefab on vehicle preset on " + def.name + " does not exist.";
                             }
                             break;
                         }
@@ -736,8 +766,12 @@ public class AssetBundleDataDrawer : PropertyDrawer
                         invalidPathsWithMessage.Add((guidProp.propertyPath, "Weather Reference is empty"));
                         invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
                         break;
-                    case ReferenceKind.AdditionalTiles:
+                    case ReferenceKind.AdditionalTile:
                         invalidPathsWithMessage.Add((guidProp.propertyPath, "AdditionalTiles Reference is empty"));
+                        invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
+                        break;
+                    case ReferenceKind.Vehicle:
+                        invalidPathsWithMessage.Add((guidProp.propertyPath, "Vehicle Reference is empty"));
                         invalidPathsWithMessage[^2] = (parentProp.propertyPath, "");
                         break;
                     default:
