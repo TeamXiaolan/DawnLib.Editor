@@ -11,7 +11,7 @@ using UnityEngine;
 namespace Dawn.Editor.ReleaseBuild;
 
 [CustomEditor(typeof(DuskModInformation))]
-public class DuskodInformationReleaseBuild : UnityEditor.Editor
+public class DuskModInformationReleaseBuild : UnityEditor.Editor
 {
     [field: SerializeField]
     public string AssetBundleFolderPath { get; private set; } = string.Empty;
@@ -21,8 +21,8 @@ public class DuskodInformationReleaseBuild : UnityEditor.Editor
     private void OnEnable()
     {
         DuskModInformation modInfo = (DuskModInformation)target;
-        AssetBundleFolderPath = EditorPrefs.GetString("CRLibEditor.AssetBundlePath." + modInfo.name, string.Empty);
-        BuildOutputPath = EditorPrefs.GetString("CRLibEditor.BuildOutputPath." + modInfo.name, string.Empty);
+        AssetBundleFolderPath = EditorPrefs.GetString("DawnLibEditor.AssetBundlePath." + modInfo.name, string.Empty);
+        BuildOutputPath = EditorPrefs.GetString("DawnLibEditor.BuildOutputPath." + modInfo.name, string.Empty);
     }
 
     public override void OnInspectorGUI()
@@ -40,7 +40,7 @@ public class DuskodInformationReleaseBuild : UnityEditor.Editor
                 string path = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
-                    EditorPrefs.SetString("CRLibEditor.AssetBundlePath." + modInfo.name, path);
+                    EditorPrefs.SetString("DawnLibEditor.AssetBundlePath." + modInfo.name, path);
                     AssetBundleFolderPath = path;
                 }
             }
@@ -55,7 +55,7 @@ public class DuskodInformationReleaseBuild : UnityEditor.Editor
                 string path = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
-                    EditorPrefs.SetString("CRLibEditor.BuildOutputPath." + modInfo.name, path);
+                    EditorPrefs.SetString("DawnLibEditor.BuildOutputPath." + modInfo.name, path);
                     BuildOutputPath = path;
                 }
             }
@@ -123,7 +123,7 @@ public class DuskodInformationReleaseBuild : UnityEditor.Editor
                 if (fileExtension == ".lethalbundle")
                     continue;
 
-                string destDir = fileExtension == ".crmod" ? pluginsDir : assetsSubDir;
+                string destDir = fileExtension == ".duskmod" ? pluginsDir : assetsSubDir;
                 string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFile));
                 File.Copy(potentialBundleFile, dest, true);
 
@@ -136,7 +136,7 @@ public class DuskodInformationReleaseBuild : UnityEditor.Editor
                 if (DuskWeatherInHere)
                 {
                     includeWR = true;
-                    Debug.Log($"[CRLib Editor] Bundle '{Path.GetFileName(potentialBundleFile)}' contains a CRWeatherDefinition!");
+                    Debug.Log($"[DawnLib Editor] Bundle '{Path.GetFileName(potentialBundleFile)}' contains a DuskWeatherDefinition!");
                 }
                 assetBundle.Unload(true);
             }
@@ -154,12 +154,12 @@ public class DuskodInformationReleaseBuild : UnityEditor.Editor
 
             ZipFile.CreateFromDirectory(tempRoot, zipPath, System.IO.Compression.CompressionLevel.Optimal, false);
 
-            Debug.Log($"[CRLib Editor] Mod package built successfully at: {zipPath}");
+            Debug.Log($"[DawnLib Editor] Mod package built successfully at: {zipPath}");
         }
         catch (Exception ex)
         {
             EditorUtility.DisplayDialog("Error", $"Failed to build mod package: {ex.Message}", "OK");
-            Debug.LogError($"[CRLib Editor] Failed to build mod package: {ex.Message}");
+            Debug.LogError($"[DawnLib Editor] Failed to build mod package: {ex.Message}");
         }
         finally
         {
