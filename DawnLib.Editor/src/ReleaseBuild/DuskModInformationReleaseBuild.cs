@@ -74,7 +74,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
     private void BuildZipPackage(DuskModInformation modInfo)
     {
-        var tempRoot = Path.Combine(Path.GetTempPath(), $"DuskodPack_{Guid.NewGuid()}");
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"DuskModPack_{Guid.NewGuid()}");
         var pluginsDir = Path.Combine(tempRoot, "plugins");
         var assetsSubDir = Path.Combine(pluginsDir, "Assets");
         Directory.CreateDirectory(assetsSubDir);
