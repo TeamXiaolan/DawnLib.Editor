@@ -120,6 +120,9 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 if (fileExtension == ".meta")
                     continue;
 
+                if (fileExtension == ".manifest")
+                    continue;
+
                 if (fileExtension == ".lethalbundle")
                     continue;
 
@@ -131,6 +134,8 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 if (assetBundle == null)
                     continue;
 
+                if (assetBundle.name == "AssetBundles")
+                    continue;
 
                 bool DuskWeatherInHere = TryGetWeathers(assetBundle);
                 if (DuskWeatherInHere)
