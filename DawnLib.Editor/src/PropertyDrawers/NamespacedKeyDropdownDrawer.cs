@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Dawn.Editor.Extensions;
 using Dusk;
 using Newtonsoft.Json;
@@ -70,11 +71,13 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             {
                 if (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter)
                 {
-                    string value = state.customValue.Trim();
+                    string value = ContentContainerEditor.NormalizeNamespacedKey(state.customValue.Trim(), false);
                     if (!string.IsNullOrEmpty(value))
                     {
                         if (!options.Contains(value))
+                        {
                             EditorJsonStringList.AddToList(value);
+                        }
 
                         property.SetStringReference(value, "Change Namespace");
                         state.addingNew = false;
@@ -93,23 +96,22 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             }
 
             if (GUI.GetNameOfFocusedControl() != ctrlName)
+            {
                 EditorGUI.FocusTextInControl(ctrlName);
+            }
         }
         else if (displayOptions[newIndex] == "<Remove all unused>")
         {
             List<DuskContentDefinition> definitions = ContentContainerEditor.FindAssetsByType<DuskContentDefinition>().ToList();
 
-            var usedNamespaces = new HashSet<string>();
+            List<string> usedNamespaces = new List<string>();
             foreach (DuskContentDefinition def in definitions)
             {
-                SerializedObject serializedObject = new(def);
-                SerializedProperty key = serializedObject.FindProperty("Key");
-                if (key != null)
+                if (def == null || def.Key == null || string.IsNullOrEmpty(def.Key.Namespace))
                 {
-                    SerializedProperty kNs = key.FindPropertyRelative("_namespace");
-                    if (kNs != null && !string.IsNullOrEmpty(kNs.stringValue))
-                        usedNamespaces.Add(kNs.stringValue);
+                    continue;
                 }
+                usedNamespaces.Add(def.Key.Namespace);
             }
 
             List<string> unused = options.Except(usedNamespaces).ToList();
@@ -135,7 +137,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         string currentKeyName;
         bool contentDefinitionExists = false;
-        if (property.serializedObject.targetObject is DuskContentDefinition contentDefinition && fieldInfo.Name != "_tags")
+        if (property.serializedObject.targetObject is DuskContentDefinition contentDefinition && fieldInfo.GetCustomAttribute<UnlockedNamespacedKey>() == null)
         {
             contentDefinitionExists = true;
             string defaultKey = contentDefinition.GetDefaultKey();
@@ -156,7 +158,9 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         float y = position.y;
         y += line + svs;
         if (GetState(property).addingNew)
+        {
             y += line + svs;
+        }
 
         Rect keyLabelRect = new(position.x, y, EditorGUIUtility.labelWidth, line);
         Rect keyValueRect = new(position.x + EditorGUIUtility.labelWidth, y, position.width - EditorGUIUtility.labelWidth, line);

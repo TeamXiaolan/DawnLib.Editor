@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using UnityEditor;
-using UnityEditor.Callbacks;
 using UnityEngine;
 
 namespace Dawn.Editor.EditorWindows;
@@ -15,6 +15,12 @@ public class DuskEntityReplacementBaker : EditorWindow
     private MonoScript? chosenClass;
     private string outputFolder = "";
 
+
+    private static string DllProjRoot => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "DuskReplacementEntitiesDLL");
+    private static string GenDir => Path.Combine(DllProjRoot, "Generated");
+    private const string AssemblyName = "com.local.teamxiaolan.DuskReplacementEntities"; // replace?
+    private const string TargetFramework = "netstandard2.1";
+
     [MenuItem("DawnLib/Dusk/Entity Replacement Baker/Bake Definition")]
     private static void Open() => GetWindow<DuskEntityReplacementBaker>("Dusk Entity Replacement Baker");
 
@@ -24,9 +30,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         chosenClass = source as MonoScript;
 
         if (source == null)
-        {
             return;
-        }
 
         if (chosenClass == null)
         {
@@ -34,11 +38,12 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
-        outputFolder = EditorGUILayout.TextField("Output Folder", outputFolder);
+        outputFolder = EditorGUILayout.TextField("Output Folder (Assets)", outputFolder);
+        EditorGUILayout.Space();
 
         using (new EditorGUI.DisabledScope(source == null))
         {
-            if (GUILayout.Button("Bake (Generate Class)"))
+            if (GUILayout.Button("Bake → Build DLL → Import"))
             {
                 Bake();
             }
@@ -47,12 +52,31 @@ public class DuskEntityReplacementBaker : EditorWindow
 
     private void Bake()
     {
-        Type type = chosenClass.GetClass();
+        if (string.IsNullOrWhiteSpace(outputFolder))
+        {
+            EditorUtility.DisplayDialog("Dusk", "Please set an Output Folder under your Assets.", "OK");
+            return;
+        }
 
-        List<FieldInfo> audioFields = new();
-        List<PropertyInfo> audioProperties = new();
-        List<FieldInfo> audioListFields = new();
-        List<FieldInfo> audioArrayFields = new();
+        string absOut = Path.GetFullPath(outputFolder);
+        string assetsAbs = Path.GetFullPath(Application.dataPath);
+        if (!absOut.StartsWith(assetsAbs, StringComparison.OrdinalIgnoreCase))
+        {
+            EditorUtility.DisplayDialog("Dusk", "Output Folder must be inside your Assets/ tree so Unity can import the DLL.", "OK");
+            return;
+        }
+
+        Type? type = chosenClass?.GetClass();
+        if (type == null)
+        {
+            EditorUtility.DisplayDialog("Dusk", "Could not resolve selected MonoScript's class.", "OK");
+            return;
+        }
+
+        List<FieldInfo> audioFields = new List<FieldInfo>();
+        List<PropertyInfo> audioProperties = new List<PropertyInfo>();
+        List<FieldInfo> audioListFields = new List<FieldInfo>();
+        List<FieldInfo> audioArrayFields = new List<FieldInfo>();
 
         BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public;
 
@@ -80,38 +104,108 @@ public class DuskEntityReplacementBaker : EditorWindow
             }
         }
 
-        if (audioFields.Count <= 0 && audioProperties.Count <= 0 && audioListFields.Count <= 0 && audioArrayFields.Count <= 0)
+        if (audioFields.Count == 0 && audioProperties.Count == 0 && audioListFields.Count == 0 && audioArrayFields.Count == 0)
         {
             EditorUtility.DisplayDialog("Dusk Entity Replacement", "No audio fields/properties found", "OK");
             return;
         }
 
-        BuildClass(type, audioFields, audioProperties, audioListFields, audioArrayFields);
+        EnsureProjectScaffold(Path.GetFileNameWithoutExtension(type.Assembly.Location), type.Assembly.Location);
+
+        string fqcn = WriteOrUpdateGeneratedClass(type, audioFields, audioProperties, audioListFields, audioArrayFields);
+
+        if (!RunDotnetBuild(DllProjRoot, out var builtDllPath, out var stdout))
+        {
+            UnityEngine.Debug.LogError($"[DuskEntityReplacementBaker] Build failed.\n{stdout}");
+            EditorUtility.DisplayDialog("Dusk", "dotnet build failed. See Console for details.", "OK");
+            return;
+        }
+
+        Directory.CreateDirectory(absOut);
+        string targetDll = Path.Combine(absOut, $"{AssemblyName}.dll");
+        File.Copy(builtDllPath, targetDll, overwrite: true);
+
+        EditorUtility.RequestScriptReload();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
+        EditorUtility.DisplayDialog("Dusk", "DLL imported. Scripts will reload to finish setup.", "OK");
     }
 
-    private void BuildClass(Type type, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
+    private static void EnsureProjectScaffold(string extraRef, string pathToExtraRef)
+    {
+        Directory.CreateDirectory(DllProjRoot);
+        Directory.CreateDirectory(GenDir);
+
+        string csproj = BuildCsprojText(extraRef, pathToExtraRef);
+        File.WriteAllText(Path.Combine(DllProjRoot, "DuskReplacementEntities.csproj"), csproj, Encoding.UTF8);
+
+        string gitIgnore = Path.Combine(DllProjRoot, ".gitignore");
+        if (!File.Exists(gitIgnore))
+        {
+            File.WriteAllText(gitIgnore, "bin/\nobj/\n", Encoding.UTF8);
+        }
+    }
+
+    private static string BuildCsprojText(string ExtraRef, string PathToExtraRef)
+    {
+        return
+$@"<Project Sdk=""Microsoft.NET.Sdk"">
+    <PropertyGroup>
+        <TargetFramework>{TargetFramework}</TargetFramework>
+        <AssemblyName>{AssemblyName}</AssemblyName>
+        <Description>Replace This!</Description>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latest</LangVersion>
+
+        <Configurations>Debug;Release</Configurations>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <DebugSymbols>true</DebugSymbols>
+        <DebugType>embedded</DebugType>
+        <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
+    </PropertyGroup>
+
+    <ItemGroup Condition=""'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'"">
+        <PackageReference Include=""Microsoft.NETFramework.ReferenceAssemblies"" Version=""1.0.2"" PrivateAssets=""all"" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include=""BepInEx.AssemblyPublicizer.MSBuild"" Version=""0.4.2"" PrivateAssets=""all"" />
+        <PackageReference Include=""BepInEx.Analyzers"" Version=""1.*"" PrivateAssets=""all"" />
+        <PackageReference Include=""BepInEx.Core"" Version=""5.*"" />
+        <PackageReference Include=""BepInEx.PluginInfoProps"" Version=""2.*"" />
+        <PackageReference Include=""UnityEngine.Modules"" Version=""2022.3.9"" IncludeAssets=""compile"" PrivateAssets=""all"" />
+        <PackageReference Include=""LethalCompany.GameLibs.Steam"" Publicize=""true"" Version=""*-*"" PrivateAssets=""all"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.2.0"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.2.0"" />
+    </ItemGroup>" + (!string.IsNullOrEmpty(ExtraRef) ? 
+    $@"<ItemGroup>
+         <Reference Include=""{ExtraRef}"" Private=""False""><HintPath>{PathToExtraRef}</HintPath></Reference>
+    </ItemGroup>" : "") +
+$@"</Project>";
+    }
+
+    private static string WriteOrUpdateGeneratedClass(Type type, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
     {
         string typeName = type.FullName;
-        StringBuilder sb = new StringBuilder();
+        StringBuilder stringBuilder = new(typeName.Length);
         foreach (char character in typeName)
         {
-            sb.Append(char.IsLetterOrDigit(character) ? character : '_');
+            stringBuilder.Append(char.IsLetterOrDigit(character) ? character : '_');
         }
-        typeName = sb.ToString();
 
-        string className = $"DuskEntityReplacementDefinition_{typeName}";
-        string @namespace = $"Dusk";
+        string safeTypeName = stringBuilder.ToString();
+        string className = $"DuskEntityReplacementDefinition_{safeTypeName}";
+        string fqcn = $"Dusk.{className}";
 
-        Directory.CreateDirectory(outputFolder);
-        string filePath = Path.Combine(outputFolder, $"{className}.cs");
-
-        sb.Clear();
-
+        StringBuilder sb = new(8192);
         sb.AppendLine("// <auto-generated> via DuskEntityReplacementBaker");
         sb.AppendLine("using UnityEngine;");
         sb.AppendLine("using System.Collections.Generic;");
-        sb.AppendLine($"namespace {@namespace}");
+        sb.AppendLine("namespace Dusk");
         sb.AppendLine("{");
+        sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Enemy Replacement Definition"", menuName = $""Other/Enemy Replacements/nameof({type.FullName})"")]");
         if (typeof(EnemyAI).IsAssignableFrom(type))
         {
             sb.AppendLine($"    public class {className} : DuskEnemyReplacementDefinition<{type.FullName}>");
@@ -122,96 +216,107 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
         sb.AppendLine("    {");
 
-        foreach (FieldInfo field in audioFields)
+        foreach (FieldInfo fieldInfo in audioFields)
         {
-            sb.AppendLine($"        public AudioClip {field.Name};");
+            sb.AppendLine($"        public AudioClip {fieldInfo.Name};");
         }
 
-        foreach (PropertyInfo property in audioProperties)
+        foreach (PropertyInfo propertyInfo in audioProperties)
         {
-            sb.AppendLine($"        public AudioClip {property.Name};");
+            sb.AppendLine($"        public AudioClip {propertyInfo.Name};");
         }
 
-        foreach (FieldInfo field in audioListFields)
+        foreach (FieldInfo fieldInfo in audioListFields)
         {
-            sb.AppendLine($"        public List<AudioClip> {field.Name} = new();");
+            sb.AppendLine($"        public List<AudioClip> {fieldInfo.Name} = new();");
         }
 
-        foreach (FieldInfo field in audioArrayFields)
+        foreach (FieldInfo fieldInfo in audioArrayFields)
         {
-            sb.AppendLine($"        public AudioClip[] {field.Name} = new AudioClip[0];");
+            sb.AppendLine($"        public AudioClip[] {fieldInfo.Name} = System.Array.Empty<AudioClip>();");
         }
 
         sb.AppendLine();
         sb.AppendLine($"        protected override void Apply({type.FullName} {type.Name})");
         sb.AppendLine("        {");
 
-        foreach (FieldInfo field in audioArrayFields)
+        foreach (FieldInfo fieldInfo in audioArrayFields)
         {
-            sb.AppendLine($"            {type.Name}.{field.Name} = this.{field.Name};");
+            sb.AppendLine($"            {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
         }
 
-        foreach (FieldInfo field in audioListFields)
+        foreach (FieldInfo fieldInfo in audioListFields)
         {
-            sb.AppendLine($"            {type.Name}.{field.Name}.AddRange(this.{field.Name});");
+            sb.AppendLine($"            {type.Name}.{fieldInfo.Name}.AddRange(this.{fieldInfo.Name});");
         }
 
-        foreach (PropertyInfo property in audioProperties)
+        foreach (PropertyInfo propertyInfo in audioProperties)
         {
-            sb.AppendLine($"            {type.Name}.{property.Name} = this.{property.Name};");
+            sb.AppendLine($"            {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
         }
 
-        foreach (FieldInfo field in audioFields)
+        foreach (FieldInfo fieldInfo in audioFields)
         {
-            sb.AppendLine($"            {type.Name}.{field.Name} = this.{field.Name};");
+            sb.AppendLine($"            {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
         }
 
         sb.AppendLine("        }");
         sb.AppendLine("    }");
         sb.AppendLine("}");
 
-        File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
-        AssetDatabase.Refresh();
-        string fqcn = $"Dusk.{className}";
-        SessionState.SetString(PendingClassKey, fqcn);
-        EditorUtility.DisplayDialog("Dusk", $"Don't touch anything, this will take a few seconds.", "OK");
-        EditorUtility.RequestScriptReload();
+        string generatedFile = Path.Combine(GenDir, $"{className}.cs");
+        File.WriteAllText(generatedFile, sb.ToString(), Encoding.UTF8);
+        return fqcn;
     }
 
-    private const string PendingClassKey = "DuskEntityReplacementBaker_PendingClass";
-
-    [DidReloadScripts]
-    private static void OnScriptsReloaded()
+    private static bool RunDotnetBuild(string workingDir, out string builtDllPath, out string output)
     {
-        string fqcn = SessionState.GetString(PendingClassKey, string.Empty);
-        if (string.IsNullOrEmpty(fqcn))
-            return;
+        builtDllPath = Path.Combine(workingDir, "bin", "Release", TargetFramework, $"{AssemblyName}.dll");
 
-        SessionState.EraseString(PendingClassKey);
-
-        string shortName = fqcn[(fqcn.LastIndexOf('.') + 1)..];
-
-        EditorApplication.delayCall += () =>
+        ProcessStartInfo processStartInfo = new("dotnet", "build -c Release")
         {
-
-            string assetPath = EditorUtility.SaveFilePanelInProject("Create Entity Replacement Definition Asset", shortName, "asset", "Choose where to save the entity replacement definition asset");
-
-            if (string.IsNullOrEmpty(assetPath))
-                return;
-
-            assetPath = AssetDatabase.GenerateUniqueAssetPath(assetPath);
-
-            ScriptableObject definition = ScriptableObject.CreateInstance(fqcn);
-            if (!definition)
-            {
-                Debug.LogError($"Failed to CreateInstance for {fqcn}. Is the script compiled without errors?");
-                return;
-            }
-
-            AssetDatabase.CreateAsset(definition, assetPath);
-            Selection.activeObject = definition;
-            EditorGUIUtility.PingObject(definition);
-            EditorUtility.DisplayDialog("Dusk", $"Successfully created entity replacement definition {shortName} at {assetPath}", "OK");
+            WorkingDirectory = workingDir,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
         };
+
+        Process proc = new()
+        {
+            StartInfo = processStartInfo
+        };
+
+        StringBuilder stringBuilder = new();
+        try
+        {
+            proc.OutputDataReceived += (_, e) => { if (e.Data != null) stringBuilder.AppendLine(e.Data); };
+            proc.ErrorDataReceived += (_, e) => { if (e.Data != null) stringBuilder.AppendLine(e.Data); };
+
+            if (!proc.Start())
+            {
+                output = "Failed to start dotnet.";
+                return false;
+            }
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+            proc.WaitForExit();
+
+            output = stringBuilder.ToString();
+            if (proc.ExitCode != 0)
+            {
+                return false;
+            }
+            return File.Exists(builtDllPath);
+        }
+        catch (Exception ex)
+        {
+            output = $"Exception running dotnet: {ex}";
+            return false;
+        }
+        finally
+        {
+            proc.Dispose();
+        }
     }
 }

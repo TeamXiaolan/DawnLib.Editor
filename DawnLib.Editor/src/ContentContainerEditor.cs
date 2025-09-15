@@ -135,8 +135,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 				{
 					nsPrefix = prefix;
 
-					if (!definitionsDict.TryGetValue(className, out var bucket))
-						definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
+					if (!definitionsDict.TryGetValue(className, out var bucket)) definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
 					foreach (var it in src)
 					{

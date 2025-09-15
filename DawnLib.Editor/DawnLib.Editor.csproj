@@ -15,8 +15,8 @@
     
     <ItemGroup>
       <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
-      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.2.1" PrivateAssets="all" Publicize="true" />
-      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="0.2.1" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.2.0" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="0.2.0" PrivateAssets="all" Publicize="true" />
       <PackageReference Include="mrov.WeatherRegistry" Publicize="true" Version="0.7.1" PrivateAssets="all" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <Reference Include="UnityEditor" PrivateAssets="all">
