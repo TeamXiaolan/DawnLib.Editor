@@ -149,7 +149,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         }
         else
         {
-            currentKeyName = keyProp.stringValue;
+            currentKeyName = ContentContainerEditor.NormalizeNamespacedKey(keyProp.stringValue, false);
         }
 
         float line = EditorGUIUtility.singleLineHeight;
@@ -185,7 +185,9 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         float h = 0f;
         h += line;
         if (GetState(property).addingNew)
+        {
             h += svs + line;
+        }
         h += svs + line;
 
         return h;
