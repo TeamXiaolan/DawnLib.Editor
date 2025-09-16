@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using Dusk;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +13,7 @@ public class DuskEntityReplacementBaker : EditorWindow
     private UnityEngine.Object? source;
     private MonoScript? chosenClass;
     private string outputFolder = "";
+    private string authorName = "placeholder";
 
     private string BaseAssemblyNamePrefix = "com.local.placeholder.DuskReplacementEntities";
     private const string TargetFramework = "netstandard2.1";
@@ -40,6 +39,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         outputFolder = EditorGUILayout.TextField("Output Folder (Assets)", outputFolder);
+        authorName = EditorGUILayout.TextField("Author Name", authorName);
         EditorGUILayout.Space();
 
         using (new EditorGUI.DisabledScope(source == null))
@@ -74,12 +74,18 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
+        if (!typeof(EnemyAI).IsAssignableFrom(type) && !typeof(GrabbableObject).IsAssignableFrom(type))
+        {
+            EditorUtility.DisplayDialog("Dusk", "Selected class is not an EnemyAI or a GrabbableObject so it is not valid.", "OK");
+            return;
+        }
+
         List<FieldInfo> audioFields = new();
         List<PropertyInfo> audioProperties = new();
         List<FieldInfo> audioListFields = new();
         List<FieldInfo> audioArrayFields = new();
 
-        BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+        BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         foreach (FieldInfo fieldInfo in type.GetFields(bindingFlags))
         {
@@ -117,12 +123,6 @@ public class DuskEntityReplacementBaker : EditorWindow
         string projRoot = Path.Combine(baseRoot, srcAsmKey);
         string genDir = Path.Combine(projRoot, "Generated");
 
-        string authorName = "placeholder";
-        DuskModInformation? modInfo = ContentContainerEditor.FindAssetsByType<DuskModInformation>().FirstOrDefault();
-        if (modInfo != null)
-        {
-            authorName = modInfo.AuthorName;
-        }
         BaseAssemblyNamePrefix = BaseAssemblyNamePrefix.Replace("placeholder", authorName);
         string perAsmAssemblyName = $"{BaseAssemblyNamePrefix}.{srcAsmKey}";
 
@@ -228,7 +228,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     (!string.IsNullOrEmpty(extraRef) ?
     $@"
     <ItemGroup>
-        <Reference Include=""{extraRef}"" Private=""False""><HintPath>{pathToExtraRef}</HintPath></Reference>
+        <Reference Include=""{extraRef}"" Private=""False""  Publicize=""true""><HintPath>{pathToExtraRef}</HintPath></Reference>
     </ItemGroup>" : "") +
     @"
 </Project>";
@@ -253,14 +253,15 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("namespace Dusk");
         sb.AppendLine("{");
-        sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Enemy Replacement Definition"", menuName = $""Other/Enemy Replacements/{type.FullName}"")]");
         if (typeof(EnemyAI).IsAssignableFrom(type))
         {
+            sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Enemy Replacement Definition"", menuName = $""Entity Replacements/Enemy Replacements/{type.FullName}"")]");
             sb.AppendLine($"    public class {className} : DuskEnemyReplacementDefinition<{type.FullName}>");
         }
-        else
+        else if (typeof(GrabbableObject).IsAssignableFrom(type))
         {
-            sb.AppendLine($"    public class {className} : DuskEntityReplacementDefinition<{type.FullName}>");
+            sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Item Replacement Definition"", menuName = $""Entity Replacements/Item Replacements/{type.FullName}"")]");
+            sb.AppendLine($"    public class {className} : DuskItemReplacementDefinition<{type.FullName}>");
         }
         sb.AppendLine("    {");
 
