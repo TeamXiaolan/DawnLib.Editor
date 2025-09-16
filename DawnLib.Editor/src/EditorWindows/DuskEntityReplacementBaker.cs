@@ -2,27 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
+using Dusk;
 using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.EditorWindows;
-
 public class DuskEntityReplacementBaker : EditorWindow
 {
     private UnityEngine.Object? source;
     private MonoScript? chosenClass;
     private string outputFolder = "";
 
-
-    private static string DllProjRoot => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "DuskReplacementEntitiesDLL");
-    private static string GenDir => Path.Combine(DllProjRoot, "Generated");
-    private const string AssemblyName = "com.local.teamxiaolan.DuskReplacementEntities"; // replace?
+    private string BaseAssemblyNamePrefix = "com.local.placeholder.DuskReplacementEntities";
     private const string TargetFramework = "netstandard2.1";
 
     [MenuItem("DawnLib/Dusk/Entity Replacement Baker/Bake Definition")]
-    private static void Open() => GetWindow<DuskEntityReplacementBaker>("Dusk Entity Replacement Baker");
+    private static void Open()
+    {
+        GetWindow<DuskEntityReplacementBaker>("Dusk Entity Replacement Baker");
+    }
 
     private void OnGUI()
     {
@@ -73,10 +74,10 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
-        List<FieldInfo> audioFields = new List<FieldInfo>();
-        List<PropertyInfo> audioProperties = new List<PropertyInfo>();
-        List<FieldInfo> audioListFields = new List<FieldInfo>();
-        List<FieldInfo> audioArrayFields = new List<FieldInfo>();
+        List<FieldInfo> audioFields = new();
+        List<PropertyInfo> audioProperties = new();
+        List<FieldInfo> audioListFields = new();
+        List<FieldInfo> audioArrayFields = new();
 
         BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public;
 
@@ -110,52 +111,96 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
-        EnsureProjectScaffold(Path.GetFileNameWithoutExtension(type.Assembly.Location), type.Assembly.Location);
+        Assembly srcAsm = type.Assembly;
+        string srcAsmKey = Sanitize(srcAsm.GetName().Name, out bool isAssemblyCSharp);
+        string baseRoot = Path.Combine(Directory.GetParent(Application.dataPath).FullName, "DuskReplacementEntitiesDLL");
+        string projRoot = Path.Combine(baseRoot, srcAsmKey);
+        string genDir = Path.Combine(projRoot, "Generated");
 
-        string fqcn = WriteOrUpdateGeneratedClass(type, audioFields, audioProperties, audioListFields, audioArrayFields);
-
-        if (!RunDotnetBuild(DllProjRoot, out var builtDllPath, out var stdout))
+        string authorName = "placeholder";
+        DuskModInformation? modInfo = ContentContainerEditor.FindAssetsByType<DuskModInformation>().FirstOrDefault();
+        if (modInfo != null)
         {
-            UnityEngine.Debug.LogError($"[DuskEntityReplacementBaker] Build failed.\n{stdout}");
-            EditorUtility.DisplayDialog("Dusk", "dotnet build failed. See Console for details.", "OK");
+            authorName = modInfo.AuthorName;
+        }
+        BaseAssemblyNamePrefix = BaseAssemblyNamePrefix.Replace("placeholder", authorName);
+        string perAsmAssemblyName = $"{BaseAssemblyNamePrefix}.{srcAsmKey}";
+
+        string extraRefName = Path.GetFileNameWithoutExtension(srcAsm.Location);
+        string extraRefPath = srcAsm.Location;
+        if (isAssemblyCSharp)
+        {
+            extraRefName = string.Empty;
+            extraRefPath = string.Empty;
+        }
+
+        EnsureProjectScaffold(projRoot, genDir, perAsmAssemblyName, extraRefName, extraRefPath);
+        WriteOrUpdateGeneratedClass(genDir, type, audioFields, audioProperties, audioListFields, audioArrayFields);
+
+        if (!RunDotnetBuild(projRoot, perAsmAssemblyName, out var builtDllPath, out var stdout))
+        {
+            UnityEngine.Debug.LogError($"[DuskEntityReplacementBaker] Build failed for {perAsmAssemblyName}.\n{stdout}");
+            EditorUtility.DisplayDialog("Dusk", $"dotnet build failed for {perAsmAssemblyName}. See Console for details.", "OK");
             return;
         }
 
         Directory.CreateDirectory(absOut);
-        string targetDll = Path.Combine(absOut, $"{AssemblyName}.dll");
+        string targetDll = Path.Combine(absOut, $"{perAsmAssemblyName}.dll");
         File.Copy(builtDllPath, targetDll, overwrite: true);
 
         EditorUtility.RequestScriptReload();
         AssetDatabase.Refresh(ImportAssetOptions.ForceUpdate);
-        EditorUtility.DisplayDialog("Dusk", "DLL imported. Scripts will reload to finish setup.", "OK");
+        EditorUtility.DisplayDialog("Dusk", $"{perAsmAssemblyName}.dll imported. Scripts will reload to finish setup.", "OK");
     }
 
-    private static void EnsureProjectScaffold(string extraRef, string pathToExtraRef)
+    private static string Sanitize(string raw, out bool isAssemblyCSharp)
     {
-        Directory.CreateDirectory(DllProjRoot);
-        Directory.CreateDirectory(GenDir);
+        isAssemblyCSharp = false;
+        if (raw == "Assembly-CSharp")
+        {
+            isAssemblyCSharp = true;
+            return raw;
+        }
 
-        string csproj = BuildCsprojText(extraRef, pathToExtraRef);
-        File.WriteAllText(Path.Combine(DllProjRoot, "DuskReplacementEntities.csproj"), csproj, Encoding.UTF8);
+        if (string.IsNullOrEmpty(raw))
+        {
+            return "Unknown";
+        }
 
-        string gitIgnore = Path.Combine(DllProjRoot, ".gitignore");
+        StringBuilder sb = new(raw.Length);
+        foreach (char c in raw)
+        {
+            sb.Append(char.IsLetterOrDigit(c) ? c : '_');
+        }
+
+        return sb.ToString();
+    }
+
+    private static void EnsureProjectScaffold(string projRoot, string genDir, string assemblyName, string extraRef, string pathToExtraRef)
+    {
+        Directory.CreateDirectory(projRoot);
+        Directory.CreateDirectory(genDir);
+
+        string csproj = BuildCsprojText(assemblyName, extraRef, pathToExtraRef);
+        File.WriteAllText(Path.Combine(projRoot, "DuskReplacementEntities.csproj"), csproj, Encoding.UTF8);
+
+        string gitIgnore = Path.Combine(projRoot, ".gitignore");
         if (!File.Exists(gitIgnore))
         {
             File.WriteAllText(gitIgnore, "bin/\nobj/\n", Encoding.UTF8);
         }
     }
 
-    private static string BuildCsprojText(string ExtraRef, string PathToExtraRef)
+    private static string BuildCsprojText(string assemblyName, string extraRef, string pathToExtraRef)
     {
         return
 $@"<Project Sdk=""Microsoft.NET.Sdk"">
     <PropertyGroup>
         <TargetFramework>{TargetFramework}</TargetFramework>
-        <AssemblyName>{AssemblyName}</AssemblyName>
-        <Description>Replace This!</Description>
+        <AssemblyName>{assemblyName}</AssemblyName>
+        <Description>Dusk per-assembly replacements</Description>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
-
         <Configurations>Debug;Release</Configurations>
         <Nullable>enable</Nullable>
     </PropertyGroup>
@@ -179,14 +224,17 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         <PackageReference Include=""LethalCompany.GameLibs.Steam"" Publicize=""true"" Version=""*-*"" PrivateAssets=""all"" />
         <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.2.0"" />
         <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.2.0"" />
-    </ItemGroup>" + (!string.IsNullOrEmpty(ExtraRef) ? 
-    $@"<ItemGroup>
-         <Reference Include=""{ExtraRef}"" Private=""False""><HintPath>{PathToExtraRef}</HintPath></Reference>
+    </ItemGroup>" +
+    (!string.IsNullOrEmpty(extraRef) ?
+    $@"
+    <ItemGroup>
+        <Reference Include=""{extraRef}"" Private=""False""><HintPath>{pathToExtraRef}</HintPath></Reference>
     </ItemGroup>" : "") +
-$@"</Project>";
+    @"
+</Project>";
     }
 
-    private static string WriteOrUpdateGeneratedClass(Type type, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
+    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
     {
         string typeName = type.FullName;
         StringBuilder stringBuilder = new(typeName.Length);
@@ -205,7 +253,7 @@ $@"</Project>";
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("namespace Dusk");
         sb.AppendLine("{");
-        sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Enemy Replacement Definition"", menuName = $""Other/Enemy Replacements/nameof({type.FullName})"")]");
+        sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Enemy Replacement Definition"", menuName = $""Other/Enemy Replacements/{type.FullName}"")]");
         if (typeof(EnemyAI).IsAssignableFrom(type))
         {
             sb.AppendLine($"    public class {className} : DuskEnemyReplacementDefinition<{type.FullName}>");
@@ -269,9 +317,9 @@ $@"</Project>";
         return fqcn;
     }
 
-    private static bool RunDotnetBuild(string workingDir, out string builtDllPath, out string output)
+    private static bool RunDotnetBuild(string workingDir, string assemblyName, out string builtDllPath, out string output)
     {
-        builtDllPath = Path.Combine(workingDir, "bin", "Release", TargetFramework, $"{AssemblyName}.dll");
+        builtDllPath = Path.Combine(workingDir, "bin", "Release", TargetFramework, $"{assemblyName}.dll");
 
         ProcessStartInfo processStartInfo = new("dotnet", "build -c Release")
         {
