@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using Dawn.Utils;
 using UnityEditor;
 using UnityEngine;
 
@@ -81,6 +82,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         List<FieldInfo> audioFields = new();
+        List<FieldInfo> audioSourceFields = new();
         List<PropertyInfo> audioProperties = new();
         List<FieldInfo> audioListFields = new();
         List<FieldInfo> audioArrayFields = new();
@@ -100,6 +102,10 @@ public class DuskEntityReplacementBaker : EditorWindow
             else if (fieldInfo.FieldType == typeof(AudioClip[]))
             {
                 audioArrayFields.Add(fieldInfo);
+            }
+            else if (fieldInfo.FieldType == typeof(AudioSource))
+            {
+                audioSourceFields.Add(fieldInfo);
             }
         }
 
@@ -135,7 +141,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         EnsureProjectScaffold(projRoot, genDir, perAsmAssemblyName, extraRefName, extraRefPath);
-        WriteOrUpdateGeneratedClass(genDir, type, audioFields, audioProperties, audioListFields, audioArrayFields);
+        WriteOrUpdateGeneratedClass(genDir, type, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields);
 
         if (!RunDotnetBuild(projRoot, perAsmAssemblyName, out var builtDllPath, out var stdout))
         {
@@ -234,7 +240,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>";
     }
 
-    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
+    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
     {
         string typeName = type.FullName;
         StringBuilder stringBuilder = new(typeName.Length);
@@ -265,6 +271,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         }
         sb.AppendLine("    {");
 
+        if (audioFields.Count > 0 || audioProperties.Count > 0 || audioListFields.Count > 0 || audioArrayFields.Count > 0)
+        {
+            sb.AppendLine($"        [Space(5)]");
+        }
         foreach (FieldInfo fieldInfo in audioFields)
         {
             sb.AppendLine($"        public AudioClip {fieldInfo.Name};");
@@ -285,6 +295,15 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"        public AudioClip[] {fieldInfo.Name} = System.Array.Empty<AudioClip>();");
         }
 
+        if (audioSourceFields.Count > 0)
+        {
+            sb.AppendLine($"        [Space(5)]");
+        }
+        foreach (FieldInfo fieldInfo in audioSourceFields)
+        {
+            sb.AppendLine($"        public AudioClip potential{fieldInfo.Name.ToCapitalized()};");
+        }
+
         sb.AppendLine();
         sb.AppendLine($"        protected override void Apply({type.FullName} {type.Name})");
         sb.AppendLine("        {");
@@ -294,6 +313,14 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            if (this.{fieldInfo.Name}.Length > 0)");
             sb.AppendLine($"            {{");
             sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
+        }
+
+        foreach (FieldInfo fieldInfo in audioSourceFields)
+        {
+            sb.AppendLine($"            if ({type.Name}.{fieldInfo.Name}.clip != null && this.potential{fieldInfo.Name.ToCapitalized()} != null)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name}.clip = this.potential{fieldInfo.Name.ToCapitalized()};");
             sb.AppendLine($"            }}");
         }
 
