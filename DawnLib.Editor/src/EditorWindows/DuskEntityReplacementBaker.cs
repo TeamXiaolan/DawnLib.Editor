@@ -291,22 +291,34 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
         foreach (FieldInfo fieldInfo in audioArrayFields)
         {
-            sb.AppendLine($"            {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            if (this.{fieldInfo.Name}.Length > 0)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
         }
 
         foreach (FieldInfo fieldInfo in audioListFields)
         {
-            sb.AppendLine($"            {type.Name}.{fieldInfo.Name}.AddRange(this.{fieldInfo.Name});");
+            sb.AppendLine($"            if (this.{fieldInfo.Name}.Count > 0)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name}.AddRange(this.{fieldInfo.Name});");
+            sb.AppendLine($"            }}");
         }
 
         foreach (PropertyInfo propertyInfo in audioProperties)
         {
-            sb.AppendLine($"            {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"            if (this.{propertyInfo.Name} != null)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"            }}");
         }
 
         foreach (FieldInfo fieldInfo in audioFields)
         {
-            sb.AppendLine($"            {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            if (this.{fieldInfo.Name} != null)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
         }
 
         sb.AppendLine("        }");
