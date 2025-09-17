@@ -271,25 +271,37 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         }
         sb.AppendLine("    {");
 
-        if (audioFields.Count > 0 || audioProperties.Count > 0 || audioListFields.Count > 0 || audioArrayFields.Count > 0)
+        if (audioFields.Count > 0)
         {
-            sb.AppendLine($"        [Space(5)]");
+            sb.AppendLine($"        [Space(10)]");
         }
         foreach (FieldInfo fieldInfo in audioFields)
         {
             sb.AppendLine($"        public AudioClip {fieldInfo.Name};");
         }
 
+        if (audioProperties.Count > 0)
+        {
+            sb.AppendLine($"        [Space(10)]");
+        }
         foreach (PropertyInfo propertyInfo in audioProperties)
         {
             sb.AppendLine($"        public AudioClip {propertyInfo.Name};");
         }
 
+        if (audioListFields.Count > 0)
+        {
+            sb.AppendLine($"        [Space(10)]");
+        }
         foreach (FieldInfo fieldInfo in audioListFields)
         {
             sb.AppendLine($"        public List<AudioClip> {fieldInfo.Name} = new();");
         }
 
+        if (audioArrayFields.Count > 0)
+        {
+            sb.AppendLine($"        [Space(10)]");
+        }
         foreach (FieldInfo fieldInfo in audioArrayFields)
         {
             sb.AppendLine($"        public AudioClip[] {fieldInfo.Name} = System.Array.Empty<AudioClip>();");
@@ -297,7 +309,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 
         if (audioSourceFields.Count > 0)
         {
-            sb.AppendLine($"        [Space(5)]");
+            sb.AppendLine($"        [Space(10)]");
         }
         foreach (FieldInfo fieldInfo in audioSourceFields)
         {
