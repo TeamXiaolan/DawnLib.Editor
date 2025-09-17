@@ -112,11 +112,11 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
             File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), decompressedTexture.EncodeToPNG());
 
             bool includeWR = false;
-            string[] allBundleFiles = Directory.GetFiles(AssetBundleFolderPath);
+            string[] allBundleFilePaths = Directory.GetFiles(AssetBundleFolderPath);
             bool WRExists = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "WeatherRegistry");
-            foreach (var potentialBundleFile in allBundleFiles)
+            foreach (string potentialBundleFilePath in allBundleFilePaths)
             {
-                string fileExtension = Path.GetExtension(potentialBundleFile).ToLowerInvariant();
+                string fileExtension = Path.GetExtension(potentialBundleFilePath).ToLowerInvariant();
                 if (fileExtension == ".meta")
                     continue;
 
@@ -126,23 +126,19 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 if (fileExtension == ".lethalbundle")
                     continue;
 
-                string destDir = fileExtension == ".duskmod" ? pluginsDir : assetsSubDir;
-                string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFile));
-
-                AssetBundle? assetBundle = AssetBundle.LoadFromFile(dest);
+                AssetBundle? assetBundle = AssetBundle.LoadFromFile(potentialBundleFilePath);
                 if (assetBundle == null)
                     continue;
 
-                if (assetBundle.name == "AssetBundles")
-                    continue;
-
-                File.Copy(potentialBundleFile, dest, true);
+                string destDir = fileExtension == ".duskmod" ? pluginsDir : assetsSubDir;
+                string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFilePath));
+                File.Copy(potentialBundleFilePath, dest, true);
 
                 bool DuskWeatherInHere = TryGetWeathers(assetBundle);
                 if (DuskWeatherInHere)
                 {
                     includeWR = true;
-                    Debug.Log($"[DawnLib Editor] Bundle '{Path.GetFileName(potentialBundleFile)}' contains a DuskWeatherDefinition!");
+                    Debug.Log($"[DawnLib Editor] Bundle '{Path.GetFileName(potentialBundleFilePath)}' contains a DuskWeatherDefinition!");
                 }
                 assetBundle.Unload(true);
             }
