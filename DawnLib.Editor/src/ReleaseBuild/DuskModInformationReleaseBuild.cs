@@ -128,7 +128,6 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
                 string destDir = fileExtension == ".duskmod" ? pluginsDir : assetsSubDir;
                 string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFile));
-                File.Copy(potentialBundleFile, dest, true);
 
                 AssetBundle? assetBundle = AssetBundle.LoadFromFile(dest);
                 if (assetBundle == null)
@@ -136,6 +135,8 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
                 if (assetBundle.name == "AssetBundles")
                     continue;
+
+                File.Copy(potentialBundleFile, dest, true);
 
                 bool DuskWeatherInHere = TryGetWeathers(assetBundle);
                 if (DuskWeatherInHere)
