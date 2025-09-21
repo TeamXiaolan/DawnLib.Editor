@@ -13,6 +13,7 @@ public class AutoDeleteCompatibilityDllOnImport : AssetPostprocessor
             if (!assetPath.EndsWith("com.github.teamxiaolan.dawnlib.compatibility.dll"))
                 continue;
 
+            pathToDelete = assetPath;
             break;
         }
 
