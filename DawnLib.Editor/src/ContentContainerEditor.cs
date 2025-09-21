@@ -117,6 +117,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<DuskAchievementDefinition> achievements = FindAssetsByType<DuskAchievementDefinition>().ToList();
 			List<DuskAdditionalTilesDefinition> additionalTiles = FindAssetsByType<DuskAdditionalTilesDefinition>().ToList();
 			List<DuskVehicleDefinition> vehicles = FindAssetsByType<DuskVehicleDefinition>().ToList();
+			List<DuskEntityReplacementDefinition> entityReplacements = FindAssetsByType<DuskEntityReplacementDefinition>().ToList();
 
 			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
@@ -148,10 +149,81 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
 			Build(achievements, "AchievementKeys", "DawnLib.Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
+			Build(entityReplacements, "EntityReplacementKeys", "DawnLib.Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
 			File.WriteAllText(outputPath, text);
+		}
+
+		if (GUILayout.Button("Migrate old configs in ContentContainer to the ContentDefinitions"))
+		{
+			foreach (EnemyData enemyData in ContentContainer.assetBundles.SelectMany(bundle => bundle.enemies))
+			{
+				DuskEnemyDefinition enemyDefinition = AssetDatabase.LoadAssetAtPath<DuskEnemyDefinition>(AssetDatabase.GUIDToAssetPath(enemyData._reference.assetGUID));
+				enemyDefinition.MoonSpawnWeights = enemyData.moonSpawnWeights;
+				enemyDefinition.InteriorSpawnWeights = enemyData.interiorSpawnWeights;
+				enemyDefinition.WeatherSpawnWeights = enemyData.weatherSpawnWeights;
+				enemyDefinition.GenerateSpawnWeightsConfig = enemyData.generateSpawnWeightsConfig;
+				enemyDefinition.EnemyType.PowerLevel = enemyData.powerLevel;
+				enemyDefinition.EnemyType.MaxCount = enemyData.maxSpawnCount;
+				EditorUtility.SetDirty(enemyDefinition);
+			}
+
+			foreach (WeatherData weatherData in ContentContainer.assetBundles.SelectMany(bundle => bundle.weathers))
+			{
+				DuskWeatherDefinition weatherDefinition = AssetDatabase.LoadAssetAtPath<DuskWeatherDefinition>(AssetDatabase.GUIDToAssetPath(weatherData._reference.assetGUID));
+				weatherDefinition.SpawnWeight = weatherData.spawnWeight;
+				weatherDefinition.ScrapValueMultiplier = weatherData.scrapValueMultiplier;
+				weatherDefinition.ScrapAmountMultiplier = weatherData.scrapMultiplier;
+				weatherDefinition.IsExclude = weatherData.isExclude;
+				weatherDefinition.CreateExcludeConfig = weatherData.createExcludeConfig;
+				weatherDefinition.ExcludeOrIncludeList = weatherData.excludeOrIncludeList;
+				EditorUtility.SetDirty(weatherDefinition);
+			}
+
+			foreach (UnlockableData unlockableData in ContentContainer.assetBundles.SelectMany(bundle => bundle.unlockables))
+			{
+				DuskUnlockableDefinition unlockableDefinition = AssetDatabase.LoadAssetAtPath<DuskUnlockableDefinition>(AssetDatabase.GUIDToAssetPath(unlockableData._reference.assetGUID));
+				unlockableDefinition.IsShipUpgrade = unlockableData.isShipUpgrade;
+				unlockableDefinition.IsDecor = unlockableData.isDecor;
+				unlockableDefinition.Cost = unlockableData.cost;
+				unlockableDefinition.GenerateDisablePricingStrategyConfig = unlockableData.generateDisablePricingStrategyConfig;
+				unlockableDefinition.GenerateDisableUnlockRequirementConfig = unlockableData.generateDisableUnlockRequirementConfig;
+				EditorUtility.SetDirty(unlockableDefinition);
+			}
+
+			foreach (ItemData itemData in ContentContainer.assetBundles.SelectMany(bundle => bundle.items))
+			{
+				DuskItemDefinition itemDefinition = AssetDatabase.LoadAssetAtPath<DuskItemDefinition>(AssetDatabase.GUIDToAssetPath(itemData._reference.assetGUID));
+				itemDefinition.Cost = itemData.cost;
+				itemDefinition.MoonSpawnWeights = itemData.moonSpawnWeights;
+				itemDefinition.WeatherSpawnWeights = itemData.weatherSpawnWeights;
+				itemDefinition.InteriorSpawnWeights = itemData.interiorSpawnWeights;
+				itemDefinition.GenerateDisableUnlockConfig = itemData.generateDisableUnlockConfig;
+				itemDefinition.GenerateDisablePricingStrategyConfig = itemData.generateDisablePricingStrategyConfig;
+				itemDefinition.IsScrap = itemData.isScrap;
+				itemDefinition.IsShopItem = itemData.isShopItem;
+				itemDefinition.GenerateSpawnWeightsConfig = itemData.generateSpawnWeightsConfig;
+				itemDefinition.GenerateScrapConfig = itemData.generateScrapConfig;
+				itemDefinition.GenerateShopItemConfig = itemData.generateShopItemConfig;
+				EditorUtility.SetDirty(itemDefinition);
+			}
+
+			foreach (MapObjectData mapObjectData in ContentContainer.assetBundles.SelectMany(bundle => bundle.mapObjects))
+			{
+				DuskMapObjectDefinition mapObjectDefinition = AssetDatabase.LoadAssetAtPath<DuskMapObjectDefinition>(AssetDatabase.GUIDToAssetPath(mapObjectData._reference.assetGUID));
+				mapObjectDefinition.IsInsideHazard = mapObjectData.isInsideHazard;
+				mapObjectDefinition.CreateInsideHazardConfig = mapObjectData.createInsideHazardConfig;
+				mapObjectDefinition.DefaultInsideCurveSpawnWeights = mapObjectData.defaultInsideCurveSpawnWeights;
+				mapObjectDefinition.CreateInsideCurveSpawnWeightsConfig = mapObjectData.createInsideCurveSpawnWeightsConfig;
+				mapObjectDefinition.IsOutsideHazard = mapObjectData.isOutsideHazard;
+				mapObjectDefinition.CreateOutsideHazardConfig = mapObjectData.createOutsideHazardConfig;
+				mapObjectDefinition.DefaultOutsideCurveSpawnWeights = mapObjectData.defaultOutsideCurveSpawnWeights;
+				mapObjectDefinition.CreateOutsideCurveSpawnWeightsConfig = mapObjectData.createOutsideCurveSpawnWeightsConfig;
+				EditorUtility.SetDirty(mapObjectDefinition);
+			}
+			AssetDatabase.SaveAssets();
 		}
 
 		if (GUILayout.Button("Generate 'vanilla_namespaced_keys.json' (Debug)"))
@@ -196,7 +268,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 					}
 
 					string displayName = nameGetter(it);
-					Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
+					Debug.Log($"Checking {className.Replace("Keys", "")}: {displayName}");
 
 					string csharpName = string.Empty;
 					if (it is TileSet tileSet)
@@ -246,7 +318,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			BuildVanilla(dungeons, "DungeonKeys", "DawnDungeonInfo",
 				d => d.name,
 				obj => obj);
-			
+
 			BuildVanilla(tilesets, "DungeonTileSetKeys", "DawnTileSetInfo",
 				t => t.name,
 				obj => obj);
