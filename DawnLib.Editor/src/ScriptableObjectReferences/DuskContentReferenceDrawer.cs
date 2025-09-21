@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Dawn.Editor.Extensions;
 using Dusk;
@@ -23,7 +24,7 @@ public class DuskContentReferenceDrawer : PropertyDrawer
     {
         if (property.managedReferenceValue is not DuskContentReference reference)
         {
-            var referenceType = fieldInfo.FieldType;
+            Type referenceType = fieldInfo.FieldType;
             if (referenceType.IsGenericType && referenceType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 referenceType = referenceType.GenericTypeArguments[0];
@@ -35,7 +36,7 @@ public class DuskContentReferenceDrawer : PropertyDrawer
         }
         EditorGUI.BeginProperty(position, label, property);
 
-        Object? oldAsset = null;
+        UnityEngine.Object? oldAsset = null;
         if (!string.IsNullOrEmpty(reference.assetGUID))
         {
             string guid = reference.assetGUID;

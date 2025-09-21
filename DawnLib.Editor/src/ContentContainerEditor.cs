@@ -20,6 +20,20 @@ namespace Dawn.Editor;
 [CustomEditor(typeof(ContentContainer))]
 public class ContentContainerEditor : UnityEditor.Editor
 {
+	private static ContentContainer? _contentContainer = null;
+	private static ContentContainer? ContentContainer
+	{
+		get
+		{
+			if (_contentContainer == null)
+			{
+				_contentContainer = FindAssetsByType<ContentContainer>().FirstOrDefault();
+			}
+
+			return _contentContainer;
+		}
+	}
+
 	private static readonly Regex NamespacedKeyRegex = new(@"[?!.\n\t""`\[\]'-]");
 
 	private static readonly Dictionary<char, string> NumberWords = new()
@@ -91,8 +105,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 	{
 		EditorGUILayout.LabelField("[TIP] Hover over a red field to get more information about what's wrong.");
 		base.OnInspectorGUI();
-
-		ContentContainer content = (ContentContainer)target;
+		_contentContainer = (ContentContainer)target;
 
 		if (GUILayout.Button("Generate 'namespaced_keys.json'"))
 		{
@@ -128,8 +141,8 @@ public class ContentContainerEditor : UnityEditor.Editor
 			}
 
 			Build(enemies, "EnemyKeys", "DawnEnemyInfo", d => d.EntityNameReference, d => d.Key);
-			Build(weathers,	"WeatherKeys", "DawnWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
-			Build(unlockables, "UnlockableItemKeys","DawnUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
+			Build(weathers, "WeatherKeys", "DawnWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
+			Build(unlockables, "UnlockableItemKeys", "DawnUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(items, "ItemKeys", "DawnItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(mapObjects, "MapObjectKeys", "DawnMapObjectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
