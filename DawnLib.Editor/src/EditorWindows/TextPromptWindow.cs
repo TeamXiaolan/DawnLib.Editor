@@ -2,13 +2,13 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace Dawn.Editor;
+namespace Dawn.Editor.EditorWindows;
 
 public class TextPromptWindow : EditorWindow
 {
-    private string prompt;
-    private string input;
-    private Action<string> onClose;
+    private string prompt = string.Empty;
+    private string input = string.Empty;
+    private Action<string>? onClose;
 
     public void OnGUI()
     {
