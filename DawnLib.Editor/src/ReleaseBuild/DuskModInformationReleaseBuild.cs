@@ -1,8 +1,6 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using Dawn.Editor.Extensions;
 using Dusk;
 using UnityEditor;
@@ -97,7 +95,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 return;
             }
 
-            var sprite = modInfo.ModIcon;
+            Sprite sprite = modInfo.ModIcon;
 
             if (sprite.texture.width > 256 || sprite.texture.height > 256)
             {
@@ -113,7 +111,6 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
             bool includeWR = false;
             string[] allBundleFilePaths = Directory.GetFiles(AssetBundleFolderPath);
-            bool WRExists = AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name == "WeatherRegistry");
             foreach (string potentialBundleFilePath in allBundleFilePaths)
             {
                 string fileExtension = Path.GetExtension(potentialBundleFilePath).ToLowerInvariant();
@@ -134,8 +131,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFilePath));
                 File.Copy(potentialBundleFilePath, dest, true);
 
-                bool DuskWeatherInHere = TryGetWeathers(assetBundle);
-                if (DuskWeatherInHere)
+                if (assetBundle.LoadAllAssets<DuskWeatherDefinition>().Length > 0)
                 {
                     includeWR = true;
                     Debug.Log($"[DawnLib Editor] Bundle '{Path.GetFileName(potentialBundleFilePath)}' contains a DuskWeatherDefinition!");
@@ -172,15 +168,4 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
             catch { /* ignore */ }
         }
     }
-
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    static bool TryGetWeathers(AssetBundle bundle)
-    {
-        if (bundle.LoadAllAssets<DuskWeatherDefinition>().Length > 0)
-        {
-            return true;
-        }
-        return false;
-    }
-    
 }
