@@ -127,73 +127,6 @@ public class ContentContainerEditor : UnityEditor.Editor
 				}
 			}
 
-			void BuildNonDuskNonVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?> assetSelector, bool bypassCheck = false)
-			{
-				string nsPrefix = "place_holder";
-
-				TextPromptWindow.Show("Namespace for the content (i.e. lethal_company):", nsPrefix, prefix =>
-				{
-					nsPrefix = prefix;
-
-					if (!definitionsDict.TryGetValue(className, out var bucket)) definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
-
-					foreach (var it in src)
-					{
-						Object? asset = null;
-
-						if (assetSelector != null)
-						{
-							asset = assetSelector(it);
-						}
-						else if (it is Object unityObj)
-						{
-							asset = unityObj;
-						}
-
-						if (asset == null && !bypassCheck)
-							continue;
-
-						if (!bypassCheck)
-						{
-							string assetPath = AssetDatabase.GetAssetPath(asset);
-							if (string.IsNullOrEmpty(assetPath) || assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
-								continue;
-						}
-
-						string displayName = nameGetter(it);
-						Debug.Log($"Checking {className.Replace("Keys","")}: {displayName}");
-
-						string csharpName = string.Empty;
-						if (it is TileSet tileSet)
-						{
-							csharpName = AdditionalTilesRegistrationHandler.FormatTileSetName(tileSet);
-						}
-						else if (it is DungeonArchetype dungeonArchetype)
-						{
-							csharpName = AdditionalTilesRegistrationHandler.FormatArchetypeName(dungeonArchetype);
-						}
-						else if (it is DungeonFlow dungeonFlow)
-						{
-							csharpName = AdditionalTilesRegistrationHandler.FormatFlowName(dungeonFlow);
-						}
-						else
-						{
-							csharpName = NormalizeNamespacedKey(displayName, true);
-						}
-
-						if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
-							continue;
-
-
-						string nsKey = nsPrefix + ":" + NormalizeNamespacedKey(displayName, false);
-
-						bucket[csharpName] = nsKey;
-
-						Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
-					}
-				});
-			}
-
 			Build(enemies, "EnemyKeys", "DawnEnemyInfo", d => d.EntityNameReference, d => d.Key);
 			Build(weathers,	"WeatherKeys", "DawnWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(unlockables, "UnlockableItemKeys","DawnUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
@@ -202,7 +135,6 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
 			Build(achievements, "AchievementKeys", "DawnLib.Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
-			BuildNonDuskNonVanilla(FindAssetsByType<SelectableLevel>(), "MoonKeys", "DawnMoonInfo", d => d.name, d => d);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
