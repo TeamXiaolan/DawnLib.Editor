@@ -143,8 +143,8 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(manifest);
             File.WriteAllText(Path.Combine(tempRoot, "manifest.json"), json);
 
-            var zipName = $"{modInfo.AuthorName}.{modInfo.ModName}_{modInfo.Version}.zip";
-            var zipPath = Path.Combine(BuildOutputPath, zipName);
+            string zipName = $"{modInfo.AuthorName}.{modInfo.ModName}_{modInfo.Version}.zip";
+            string zipPath = Path.Combine(BuildOutputPath, zipName);
             if (File.Exists(zipPath))
             {
                 File.Delete(zipPath);

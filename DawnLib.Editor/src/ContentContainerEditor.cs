@@ -147,9 +147,9 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(items, "ItemKeys", "DawnItemInfo", d => d.EntityNameReference, d => d.Key);
 			Build(mapObjects, "MapObjectKeys", "DawnMapObjectInfo", d => d.EntityNameReference, d => d.Key);
 			Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
-			Build(achievements, "AchievementKeys", "DawnLib.Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
+			Build(achievements, "AchievementKeys", "Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
-			Build(entityReplacements, "EntityReplacementKeys", "DawnLib.Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
+			Build(entityReplacements, "EntityReplacementKeys", "Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
 
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");

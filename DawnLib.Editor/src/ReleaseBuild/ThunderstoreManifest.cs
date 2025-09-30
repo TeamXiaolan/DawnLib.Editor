@@ -34,9 +34,9 @@ public class ThunderstoreManifest(DuskModInformation modInfo, bool includeWR)
         dependencies.Add("BepInEx-BepInExPack-5.4.2100");
         if (includeWR)
         {
-            dependencies.Add("mrov-WeatherRegistry-0.6.1");
+            dependencies.Add("mrov-WeatherRegistry-0.7.4");
         }
-        dependencies.Add("TeamXiaolan-DawnLib-0.10.0");
+        dependencies.Add("TeamXiaolan-DawnLib-0.2.5");
         return dependencies;
     }
 }
