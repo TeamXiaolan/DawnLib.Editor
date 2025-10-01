@@ -36,7 +36,7 @@ public class ThunderstoreManifest(DuskModInformation modInfo, bool includeWR)
         {
             dependencies.Add("mrov-WeatherRegistry-0.7.4");
         }
-        dependencies.Add("TeamXiaolan-DawnLib-0.2.5");
+        dependencies.Add($"TeamXiaolan-DawnLib-{Dawn.MyPluginInfo.PLUGIN_VERSION}");
         return dependencies;
     }
 }
