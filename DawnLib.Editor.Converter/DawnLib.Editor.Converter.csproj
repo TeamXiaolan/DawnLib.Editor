@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyName>com.github.teamxiaolan.dawnlib.editor.converter</AssemblyName>
+        <Product>Dawn.Editor.Converter</Product>
+    </PropertyGroup>
+
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <RootNamespace>Dawn.Editor.Converter</RootNamespace>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+      <PackageReference Include="TeamXiaolan.DawnLib" Version="*" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="*" PrivateAssets="all" Publicize="true" />
+      <Reference Include="UnityEditor" PrivateAssets="all">
+        <HintPath>$(UnityEditorPath)Editor\Data\Managed\UnityEngine\UnityEditor.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEditor.CoreModule" PrivateAssets="all">
+        <HintPath>$(UnityEditorPath)Editor\Data\Managed\UnityEngine\UnityEditor.CoreModule.dll</HintPath>
+      </Reference>
+      <PackageReference Include="IAmBatby-LethalLevelLoader" Version="1.4.11" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" PrivateAssets="all"/>
+      <PackageReference Include="LethalCompany.GameLibs.Steam" Version="*-*" PrivateAssets="all" Publicize="true"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="deps\" />
+    </ItemGroup>
+</Project>
