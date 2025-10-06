@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Dawn.Editor.EditorWindows;
 public class DuskContentConverter : EditorWindow
 {
-    private string authorName = string.Empty;
+    /*private string authorName = string.Empty;
     [Tooltip("Version format: Major.Minor.Patches")]
     private string version_number = string.Empty;
 
@@ -26,5 +26,5 @@ public class DuskContentConverter : EditorWindow
                 Bake();
             }
         }
-    }
+    }*/
 }

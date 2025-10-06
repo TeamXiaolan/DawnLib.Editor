@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using Dawn.Utils;
+using Unity.Properties;
 using UnityEditor;
 using UnityEngine;
 
@@ -87,6 +88,11 @@ public class DuskEntityReplacementBaker : EditorWindow
         List<FieldInfo> audioListFields = new();
         List<FieldInfo> audioArrayFields = new();
 
+        List<FieldInfo> particleSystemFields = new();
+        List<PropertyInfo> particleSystemProperties = new();
+        List<FieldInfo> particleSystemListFields = new();
+        List<FieldInfo> particleSystemArrayFields = new();
+
         BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
         foreach (FieldInfo fieldInfo in type.GetFields(bindingFlags))
@@ -107,6 +113,18 @@ public class DuskEntityReplacementBaker : EditorWindow
             {
                 audioSourceFields.Add(fieldInfo);
             }
+            else if (fieldInfo.FieldType == typeof(ParticleSystem))
+            {
+                particleSystemFields.Add(fieldInfo);
+            }
+            else if (fieldInfo.FieldType == typeof(List<ParticleSystem>))
+            {
+                particleSystemListFields.Add(fieldInfo);
+            }
+            else if (fieldInfo.FieldType == typeof(ParticleSystem[]))
+            {
+                particleSystemArrayFields.Add(fieldInfo);
+            }
         }
 
         foreach (PropertyInfo propertyInfo in type.GetProperties(bindingFlags))
@@ -115,11 +133,15 @@ public class DuskEntityReplacementBaker : EditorWindow
             {
                 audioProperties.Add(propertyInfo);
             }
+            else if (propertyInfo.PropertyType == typeof(ParticleSystem) && propertyInfo.CanWrite && propertyInfo.GetIndexParameters().Length == 0)
+            {
+                particleSystemProperties.Add(propertyInfo);
+            }
         }
 
-        if (audioFields.Count == 0 && audioProperties.Count == 0 && audioListFields.Count == 0 && audioArrayFields.Count == 0)
+        if (audioFields.Count == 0 && audioProperties.Count == 0 && audioListFields.Count == 0 && audioArrayFields.Count == 0 && audioSourceFields.Count == 0 && particleSystemFields.Count == 0 && particleSystemProperties.Count == 0 && particleSystemListFields.Count == 0 && particleSystemArrayFields.Count == 0)
         {
-            EditorUtility.DisplayDialog("Dusk Entity Replacement", "No audio fields/properties found", "OK");
+            EditorUtility.DisplayDialog("Dusk Entity Replacement", "No audio or particle system fields/properties found", "OK");
             return;
         }
 
@@ -141,7 +163,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         EnsureProjectScaffold(projRoot, genDir, perAsmAssemblyName, extraRefName, extraRefPath);
-        WriteOrUpdateGeneratedClass(genDir, type, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields);
+        WriteOrUpdateGeneratedClass(genDir, type, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
 
         if (!RunDotnetBuild(projRoot, perAsmAssemblyName, out var builtDllPath, out var stdout))
         {
@@ -240,7 +262,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>";
     }
 
-    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields)
+    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
     {
         string typeName = type.FullName;
         StringBuilder stringBuilder = new(typeName.Length);
@@ -271,49 +293,47 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         }
         sb.AppendLine("    {");
 
-        if (audioFields.Count > 0)
+        if (audioFields.Count > 0 || audioListFields.Count > 0 || audioArrayFields.Count > 0 || audioSourceFields.Count > 0 || audioProperties.Count > 0)
         {
             sb.AppendLine($"        [Space(10)]");
-        }
-        foreach (FieldInfo fieldInfo in audioFields)
-        {
-            sb.AppendLine($"        public AudioClip {fieldInfo.Name};");
         }
 
-        if (audioProperties.Count > 0)
+        foreach (FieldInfo fieldInfo in audioFields)
         {
-            sb.AppendLine($"        [Space(10)]");
+            sb.AppendLine($"        public AudioClip? {fieldInfo.Name} = null;");
         }
         foreach (PropertyInfo propertyInfo in audioProperties)
         {
-            sb.AppendLine($"        public AudioClip {propertyInfo.Name};");
-        }
-
-        if (audioListFields.Count > 0)
-        {
-            sb.AppendLine($"        [Space(10)]");
+            sb.AppendLine($"        public AudioClip? {propertyInfo.Name} = null;");
         }
         foreach (FieldInfo fieldInfo in audioListFields)
         {
             sb.AppendLine($"        public List<AudioClip> {fieldInfo.Name} = new();");
         }
-
-        if (audioArrayFields.Count > 0)
-        {
-            sb.AppendLine($"        [Space(10)]");
-        }
         foreach (FieldInfo fieldInfo in audioArrayFields)
         {
             sb.AppendLine($"        public AudioClip[] {fieldInfo.Name} = System.Array.Empty<AudioClip>();");
         }
-
-        if (audioSourceFields.Count > 0)
-        {
-            sb.AppendLine($"        [Space(10)]");
-        }
         foreach (FieldInfo fieldInfo in audioSourceFields)
         {
-            sb.AppendLine($"        public AudioClip potential{fieldInfo.Name.ToCapitalized()};");
+            sb.AppendLine($"        public AudioClip? potential{fieldInfo.Name.ToCapitalized()} = null;");
+        }
+
+        foreach (FieldInfo fieldInfo in particleSystemFields)
+        {
+            sb.AppendLine($"        public ParticleSystem? {fieldInfo.Name};"); ;
+        }
+        foreach (FieldInfo fieldInfo in particleSystemArrayFields)
+        {
+            sb.AppendLine($"        public ParticleSystem[] {fieldInfo.Name} = System.Array.Empty<ParticleSystem>();");
+        }
+        foreach (FieldInfo fieldInfo in particleSystemListFields)
+        {
+            sb.AppendLine($"        public List<ParticleSystem> {fieldInfo.Name} = new();");
+        }
+        foreach (PropertyInfo propertyInfo in particleSystemProperties)
+        {
+            sb.AppendLine($"        public ParticleSystem? {propertyInfo.Name} = null;");
         }
 
         sb.AppendLine();
@@ -327,7 +347,6 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
-
         foreach (FieldInfo fieldInfo in audioSourceFields)
         {
             sb.AppendLine($"            if ({type.Name}.{fieldInfo.Name}.clip != null && this.potential{fieldInfo.Name.ToCapitalized()} != null)");
@@ -335,15 +354,13 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                {type.Name}.{fieldInfo.Name}.clip = this.potential{fieldInfo.Name.ToCapitalized()};");
             sb.AppendLine($"            }}");
         }
-
         foreach (FieldInfo fieldInfo in audioListFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name}.Count > 0)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name}.AddRange(this.{fieldInfo.Name});");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
-
         foreach (PropertyInfo propertyInfo in audioProperties)
         {
             sb.AppendLine($"            if (this.{propertyInfo.Name} != null)");
@@ -351,11 +368,70 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
             sb.AppendLine($"            }}");
         }
-
         foreach (FieldInfo fieldInfo in audioFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name} != null)");
             sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
+        }
+
+        foreach (FieldInfo fieldInfo in particleSystemArrayFields)
+        {
+            sb.AppendLine($"            if (this.{fieldInfo.Name}.Length > 0)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                for (int i = 0; i < this.{fieldInfo.Name}.Length; i++)");
+            sb.AppendLine($"                {{");
+            sb.AppendLine($"                    ParticleSystem? newParticleSystem = this.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    if (newParticleSystem == null || targetParticleSystem == null) continue;");
+            sb.AppendLine($"                    targetParticleSystem.enabled = false;");
+            sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
+            sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
+            sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
+            sb.AppendLine($"                }}");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
+        }
+        foreach (FieldInfo fieldInfo in particleSystemListFields)
+        {
+            sb.AppendLine($"            if (this.{fieldInfo.Name}.Count > 0)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                for (int i = 0; i < this.{fieldInfo.Name}.Count; i++)");
+            sb.AppendLine($"                {{");
+            sb.AppendLine($"                    ParticleSystem? newParticleSystem = this.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    if (newParticleSystem == null || targetParticleSystem == null) continue;");
+            sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
+            sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
+            sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
+            sb.AppendLine($"                }}");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
+        }
+        foreach (PropertyInfo propertyInfo in particleSystemProperties)
+        {
+            sb.AppendLine($"            if (this.{propertyInfo.Name} != null)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{propertyInfo.Name};");
+            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type}.{propertyInfo.Name};");
+            sb.AppendLine($"                if (newParticleSystem == null || targetParticleSystem == null) continue;");
+            sb.AppendLine($"                GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
+            sb.AppendLine($"                newParticle.name = targetParticleSystem.gameObject.name;");
+            sb.AppendLine($"                Destroy(targetParticleSystem.gameObject);");
+            sb.AppendLine($"                {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"            }}");
+        }
+        foreach (FieldInfo fieldInfo in particleSystemFields)
+        {
+            sb.AppendLine($"            if (this.{fieldInfo.Name} != null)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{fieldInfo.Name};");
+            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name};");
+            sb.AppendLine($"                if (newParticleSystem == null || targetParticleSystem == null) continue;");
+            sb.AppendLine($"                GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
+            sb.AppendLine($"                newParticle.name = targetParticleSystem.gameObject.name;");
+            sb.AppendLine($"                Destroy(targetParticleSystem.gameObject);");
             sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
