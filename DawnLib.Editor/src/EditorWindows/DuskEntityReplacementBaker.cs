@@ -337,6 +337,17 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         }
 
         sb.AppendLine();
+        sb.AppendLine(@"        [Header(""Experimental: PlayAudioAnimationEvent overrides"")]");
+        sb.AppendLine("        public AudioSource? ExperimentalAudioToPlay = null;");
+        sb.AppendLine("        public AudioSource? ExperimentalAudioToPlayB = null;");
+        sb.AppendLine("        public AudioClip? ExperimentalAudioClip = null;");
+        sb.AppendLine("        public AudioClip? ExperimentalAudioClip2 = null;");
+        sb.AppendLine("        public AudioClip? ExperimentalAudioClip3 = null;");
+        sb.AppendLine("        public AudioClip[] ExperimentalRandomClips  = System.Array.Empty<AudioClip>();");
+        sb.AppendLine("        public AudioClip[] ExperimentalRandomClips2 = System.Array.Empty<AudioClip>();");
+        sb.AppendLine("        public ParticleSystem? ExperimentalParticle = null;");
+
+        sb.AppendLine();
         sb.AppendLine($"        protected override void Apply({type.FullName} {type.Name})");
         sb.AppendLine("        {");
 
@@ -415,11 +426,13 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            {{");
             sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{propertyInfo.Name};");
             sb.AppendLine($"                ParticleSystem targetParticleSystem = {type}.{propertyInfo.Name};");
-            sb.AppendLine($"                if (newParticleSystem == null || targetParticleSystem == null) continue;");
-            sb.AppendLine($"                GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
-            sb.AppendLine($"                newParticle.name = targetParticleSystem.gameObject.name;");
-            sb.AppendLine($"                Destroy(targetParticleSystem.gameObject);");
-            sb.AppendLine($"                {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"                if (newParticleSystem != null && targetParticleSystem != null)");
+            sb.AppendLine($"                {{");
+            sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
+            sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
+            sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
+            sb.AppendLine($"                    {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"                }}");
             sb.AppendLine($"            }}");
         }
         foreach (FieldInfo fieldInfo in particleSystemFields)
@@ -428,13 +441,48 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            {{");
             sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{fieldInfo.Name};");
             sb.AppendLine($"                ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name};");
-            sb.AppendLine($"                if (newParticleSystem == null || targetParticleSystem == null) continue;");
-            sb.AppendLine($"                GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
-            sb.AppendLine($"                newParticle.name = targetParticleSystem.gameObject.name;");
-            sb.AppendLine($"                Destroy(targetParticleSystem.gameObject);");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                if (newParticleSystem != null && targetParticleSystem != null)");
+            sb.AppendLine($"                {{");
+            sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
+            sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
+            sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
+            sb.AppendLine($"                    {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                }}");
             sb.AppendLine($"            }}");
         }
+
+        sb.AppendLine();
+        sb.AppendLine($"            Animator? animator = {type.Name}.GetComponentInChildren<Animator>(true);");
+        sb.AppendLine("            if (animator != null)");
+        sb.AppendLine("            {");
+        sb.AppendLine("                PlayAudioAnimationEvent playAudioAnimationEvent = animator.gameObject.GetComponent<PlayAudioAnimationEvent>();");
+        sb.AppendLine("                if (playAudioAnimationEvent != null)");
+        sb.AppendLine("                {");
+        sb.AppendLine("                    if (this.ExperimentalAudioToPlay  != null) playAudioAnimationEvent.audioToPlay  = this.ExperimentalAudioToPlay;");
+        sb.AppendLine("                    if (this.ExperimentalAudioToPlayB != null) playAudioAnimationEvent.audioToPlayB = this.ExperimentalAudioToPlayB;");
+        sb.AppendLine();
+        sb.AppendLine("                    if (this.ExperimentalAudioClip  != null) playAudioAnimationEvent.audioClip  = this.ExperimentalAudioClip;");
+        sb.AppendLine("                    if (this.ExperimentalAudioClip2 != null) playAudioAnimationEvent.audioClip2 = this.ExperimentalAudioClip2;");
+        sb.AppendLine("                    if (this.ExperimentalAudioClip3 != null) playAudioAnimationEvent.audioClip3 = this.ExperimentalAudioClip3;");
+        sb.AppendLine();
+        sb.AppendLine("                    if (this.ExperimentalRandomClips.Length > 0 && playAudioAnimationEvent.randomClips.Length > 0)");
+        sb.AppendLine("                    {");
+        sb.AppendLine("                        playAudioAnimationEvent.randomClips = this.ExperimentalRandomClips;");
+        sb.AppendLine("                    }");
+        sb.AppendLine("                    if (this.ExperimentalRandomClips2.Length > 0 && playAudioAnimationEvent.randomClips2.Length > 0)");
+        sb.AppendLine("                    {");
+        sb.AppendLine("                        playAudioAnimationEvent.randomClips2 = this.ExperimentalRandomClips2;");
+        sb.AppendLine("                    }");
+        sb.AppendLine();
+        sb.AppendLine("                    if (this.ExperimentalParticle != null && playAudioAnimationEvent.particle != null)");
+        sb.AppendLine("                    {");
+        sb.AppendLine("                        GameObject newGameObject = GameObject.Instantiate(this.ExperimentalParticle.gameObject, playAudioAnimationEvent.particle.transform.parent);");
+        sb.AppendLine("                        newGameObject.name = playAudioAnimationEvent.particle.gameObject.name;");
+        sb.AppendLine("                        Destroy(playAudioAnimationEvent.particle.gameObject);");
+        sb.AppendLine("                        playAudioAnimationEvent.particle = newGameObject.GetComponent<ParticleSystem>();");
+        sb.AppendLine("                    }");
+        sb.AppendLine("                }");
+        sb.AppendLine("            }");
 
         sb.AppendLine("        }");
         sb.AppendLine("    }");
