@@ -234,6 +234,13 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
     </PropertyGroup>
 
     <PropertyGroup>
+        <RestoreAdditionalProjectSources>
+            https://api.nuget.org/v3/index.json;
+            https://nuget.bepinex.dev/v3/index.json
+        </RestoreAdditionalProjectSources>
+    </PropertyGroup>
+
+    <PropertyGroup>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>embedded</DebugType>
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
@@ -250,8 +257,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         <PackageReference Include=""BepInEx.PluginInfoProps"" Version=""2.*"" />
         <PackageReference Include=""UnityEngine.Modules"" Version=""2022.3.9"" IncludeAssets=""compile"" PrivateAssets=""all"" />
         <PackageReference Include=""LethalCompany.GameLibs.Steam"" Publicize=""true"" Version=""*-*"" PrivateAssets=""all"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.2.0"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.2.0"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""*.*"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""*.*"" />
     </ItemGroup>" +
     (!string.IsNullOrEmpty(extraRef) ?
     $@"
