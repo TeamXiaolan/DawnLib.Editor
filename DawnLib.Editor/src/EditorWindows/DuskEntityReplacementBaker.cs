@@ -257,8 +257,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         <PackageReference Include=""BepInEx.PluginInfoProps"" Version=""2.*"" />
         <PackageReference Include=""UnityEngine.Modules"" Version=""2022.3.9"" IncludeAssets=""compile"" PrivateAssets=""all"" />
         <PackageReference Include=""LethalCompany.GameLibs.Steam"" Publicize=""true"" Version=""*-*"" PrivateAssets=""all"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""*.*"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""*.*"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.2.16"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.2.16"" />
     </ItemGroup>" +
     (!string.IsNullOrEmpty(extraRef) ?
     $@"
@@ -401,7 +401,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                for (int i = 0; i < this.{fieldInfo.Name}.Length; i++)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    ParticleSystem? newParticleSystem = this.{fieldInfo.Name}[i];");
-            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type.Name}.{fieldInfo.Name}[i];");
             sb.AppendLine($"                    if (newParticleSystem == null || targetParticleSystem == null) continue;");
             sb.AppendLine($"                    targetParticleSystem.enabled = false;");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
@@ -418,7 +418,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                for (int i = 0; i < this.{fieldInfo.Name}.Count; i++)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    ParticleSystem? newParticleSystem = this.{fieldInfo.Name}[i];");
-            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type.Name}.{fieldInfo.Name}[i];");
             sb.AppendLine($"                    if (newParticleSystem == null || targetParticleSystem == null) continue;");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
             sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
@@ -432,7 +432,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            if (this.{propertyInfo.Name} != null)");
             sb.AppendLine($"            {{");
             sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{propertyInfo.Name};");
-            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type}.{propertyInfo.Name};");
+            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type.Name}.{propertyInfo.Name};");
             sb.AppendLine($"                if (newParticleSystem != null && targetParticleSystem != null)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
@@ -447,7 +447,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            if (this.{fieldInfo.Name} != null)");
             sb.AppendLine($"            {{");
             sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{fieldInfo.Name};");
-            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type}.{fieldInfo.Name};");
+            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type.Name}.{fieldInfo.Name};");
             sb.AppendLine($"                if (newParticleSystem != null && targetParticleSystem != null)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
