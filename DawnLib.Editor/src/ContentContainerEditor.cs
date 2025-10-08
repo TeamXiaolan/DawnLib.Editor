@@ -118,6 +118,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<DuskAdditionalTilesDefinition> additionalTiles = FindAssetsByType<DuskAdditionalTilesDefinition>().ToList();
 			List<DuskVehicleDefinition> vehicles = FindAssetsByType<DuskVehicleDefinition>().ToList();
 			List<DuskEntityReplacementDefinition> entityReplacements = FindAssetsByType<DuskEntityReplacementDefinition>().ToList();
+			List<DuskMoonDefinition> moons = FindAssetsByType<DuskMoonDefinition>().ToList();
 
 			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
@@ -150,7 +151,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(achievements, "AchievementKeys", "Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
 			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
 			Build(entityReplacements, "EntityReplacementKeys", "Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
-
+			Build(moons, "MoonKeys", "DawnMoonInfo", d => d.EntityNameReference, d => d.Key);
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
 			File.WriteAllText(outputPath, text);
@@ -273,15 +274,15 @@ public class ContentContainerEditor : UnityEditor.Editor
 					string csharpName = string.Empty;
 					if (it is TileSet tileSet)
 					{
-						csharpName = AdditionalTilesRegistrationHandler.FormatTileSetName(tileSet);
+						csharpName = DungeonRegistrationHandler.FormatTileSetName(tileSet);
 					}
 					else if (it is DungeonArchetype dungeonArchetype)
 					{
-						csharpName = AdditionalTilesRegistrationHandler.FormatArchetypeName(dungeonArchetype);
+						csharpName = DungeonRegistrationHandler.FormatArchetypeName(dungeonArchetype);
 					}
 					else if (it is DungeonFlow dungeonFlow)
 					{
-						csharpName = AdditionalTilesRegistrationHandler.FormatFlowName(dungeonFlow);
+						csharpName = DungeonRegistrationHandler.FormatFlowName(dungeonFlow);
 					}
 					else
 					{
