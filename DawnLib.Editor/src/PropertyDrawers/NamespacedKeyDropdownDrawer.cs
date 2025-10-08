@@ -162,18 +162,16 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             y += line + svs;
         }
 
-        Rect keyLabelRect = new(position.x, y, EditorGUIUtility.labelWidth, line);
-        Rect keyValueRect = new(position.x + EditorGUIUtility.labelWidth, y, position.width - EditorGUIUtility.labelWidth, line);
-
-        EditorGUI.LabelField(keyLabelRect, "Key");
+        Rect keyRow = new(position.x, y, position.width, line);
         using (new EditorGUI.DisabledScope(contentDefinitionExists))
         {
-            currentKeyName = EditorGUI.TextField(keyValueRect, currentKeyName);
             if (currentKeyName != keyProp.stringValue)
             {
                 keyProp.SetStringReference(currentKeyName, "Change Key");
             }
+            EditorGUI.PropertyField(keyRow, keyProp, new GUIContent("Key"));
         }
+
         EditorGUI.EndProperty();
     }
 
