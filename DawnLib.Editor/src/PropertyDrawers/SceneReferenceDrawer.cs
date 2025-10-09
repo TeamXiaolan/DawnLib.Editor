@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dusk.Utils;
 using UnityEditor;
 using UnityEngine;
@@ -6,6 +7,8 @@ namespace Dawn.Editor.PropertyDrawers;
 [CustomPropertyDrawer(typeof(SceneReference))]
 public class SceneReferenceDrawer : PropertyDrawer
 {
+    private static Dictionary<string, SceneAsset?> SceneReferencesDict = new();
+
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         SerializedProperty scenePathProp = property.FindPropertyRelative("_scenePath");
@@ -16,7 +19,25 @@ public class SceneReferenceDrawer : PropertyDrawer
 
         EditorGUI.BeginProperty(position, label, property);
 
-        SceneAsset? currentSceneAsset = string.IsNullOrEmpty(scenePathProp.stringValue) ? null : AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePathProp.stringValue);
+        SceneAsset? currentSceneAsset = null;
+        if (!string.IsNullOrEmpty(scenePathProp.stringValue) && !SceneReferencesDict.TryGetValue(scenePathProp.stringValue, out currentSceneAsset))
+        {
+            currentSceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePathProp.stringValue);
+            if (currentSceneAsset == null)
+            {
+                scenePathProp.stringValue = string.Empty;
+                assetGuidProp.stringValue = string.Empty;
+                bundleNameProp.stringValue = string.Empty;
+                if (SceneReferencesDict.ContainsKey(scenePathProp.stringValue))
+                {
+                    SceneReferencesDict.Remove(scenePathProp.stringValue);
+                }
+            }
+            else
+            {
+                SceneReferencesDict.Add(scenePathProp.stringValue, currentSceneAsset);
+            }
+        }
 
         EditorGUI.BeginChangeCheck();
 
