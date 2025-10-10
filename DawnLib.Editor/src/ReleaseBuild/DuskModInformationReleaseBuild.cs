@@ -123,6 +123,11 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 if (fileExtension == ".lethalbundle")
                     continue;
 
+                if (fileExtension == ".dll")
+                {
+                    File.Copy(potentialBundleFilePath, Path.Combine(pluginsDir, Path.GetFileName(potentialBundleFilePath)), true);
+                    continue;
+                }
                 AssetBundle? assetBundle = AssetBundle.LoadFromFile(potentialBundleFilePath);
                 if (assetBundle == null)
                     continue;
@@ -130,6 +135,9 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
                 string destDir = fileExtension == ".duskmod" ? pluginsDir : assetsSubDir;
                 string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFilePath));
                 File.Copy(potentialBundleFilePath, dest, true);
+
+                if (assetBundle.isStreamedSceneAssetBundle)
+                    continue;
 
                 if (assetBundle.LoadAllAssets<DuskWeatherDefinition>().Length > 0)
                 {
