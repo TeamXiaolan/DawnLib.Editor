@@ -5,7 +5,6 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using Dawn.Utils;
-using Unity.Properties;
 using UnityEditor;
 using UnityEngine;
 
@@ -82,6 +81,7 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
+        List<FieldInfo> audioClipsWithTimeFields = new();
         List<FieldInfo> audioFields = new();
         List<FieldInfo> audioSourceFields = new();
         List<PropertyInfo> audioProperties = new();
@@ -112,6 +112,10 @@ public class DuskEntityReplacementBaker : EditorWindow
             else if (fieldInfo.FieldType == typeof(AudioSource))
             {
                 audioSourceFields.Add(fieldInfo);
+            }
+            else if (fieldInfo.FieldType == typeof(AudioClipsWithTime))
+            {
+                audioClipsWithTimeFields.Add(fieldInfo);
             }
             else if (fieldInfo.FieldType == typeof(ParticleSystem))
             {
@@ -163,7 +167,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         EnsureProjectScaffold(projRoot, genDir, perAsmAssemblyName, extraRefName, extraRefPath);
-        WriteOrUpdateGeneratedClass(genDir, type, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
+        WriteOrUpdateGeneratedClass(genDir, type, audioClipsWithTimeFields, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
 
         if (!RunDotnetBuild(projRoot, perAsmAssemblyName, out var builtDllPath, out var stdout))
         {
@@ -269,7 +273,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>";
     }
 
-    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
+    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioClipsWithTimeFields, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
     {
         string typeName = type.FullName;
         StringBuilder stringBuilder = new(typeName.Length);
@@ -305,6 +309,10 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"        [Space(10)]");
         }
 
+        foreach (FieldInfo audioClipsWithTimeField in audioClipsWithTimeFields)
+        {
+            sb.AppendLine($"        public AudioClipsWithTime {audioClipsWithTimeField.Name} = new();");
+        }
         foreach (FieldInfo fieldInfo in audioFields)
         {
             sb.AppendLine($"        public AudioClip? {fieldInfo.Name} = null;");
@@ -344,9 +352,9 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         }
 
         sb.AppendLine();
-        sb.AppendLine(@"        [Header(""Experimental: PlayAudioAnimationEvent overrides"")]");
-        sb.AppendLine("        public AudioSource? ExperimentalAudioToPlay = null;");
-        sb.AppendLine("        public AudioSource? ExperimentalAudioToPlayB = null;");
+        sb.AppendLine(@"        [Header(""Experimental (Usually vanilla only): PlayAudioAnimationEvent overrides"")]");
+        sb.AppendLine("        public AudioClip? ExperimentalAudioToPlay = null;");
+        sb.AppendLine("        public AudioClip? ExperimentalAudioToPlayB = null;");
         sb.AppendLine("        public AudioClip? ExperimentalAudioClip = null;");
         sb.AppendLine("        public AudioClip? ExperimentalAudioClip2 = null;");
         sb.AppendLine("        public AudioClip? ExperimentalAudioClip3 = null;");
@@ -358,6 +366,13 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         sb.AppendLine($"        protected override void Apply({type.FullName} {type.Name})");
         sb.AppendLine("        {");
 
+        foreach (FieldInfo fieldInfo in audioClipsWithTimeFields)
+        {
+            sb.AppendLine($"            if (this.{fieldInfo.Name}.audioClips.Count > 0)");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"            }}");
+        }
         foreach (FieldInfo fieldInfo in audioArrayFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name}.Length > 0)");
@@ -462,11 +477,11 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         sb.AppendLine($"            Animator? animator = {type.Name}.GetComponentInChildren<Animator>(true);");
         sb.AppendLine("            if (animator != null)");
         sb.AppendLine("            {");
-        sb.AppendLine("                PlayAudioAnimationEvent playAudioAnimationEvent = animator.gameObject.GetComponent<PlayAudioAnimationEvent>();");
+        sb.AppendLine("                PlayAudioAnimationEvent? playAudioAnimationEvent = animator.gameObject.GetComponent<PlayAudioAnimationEvent>();");
         sb.AppendLine("                if (playAudioAnimationEvent != null)");
         sb.AppendLine("                {");
-        sb.AppendLine("                    if (this.ExperimentalAudioToPlay  != null) playAudioAnimationEvent.audioToPlay  = this.ExperimentalAudioToPlay;");
-        sb.AppendLine("                    if (this.ExperimentalAudioToPlayB != null) playAudioAnimationEvent.audioToPlayB = this.ExperimentalAudioToPlayB;");
+        sb.AppendLine("                    if (this.ExperimentalAudioToPlay  != null) playAudioAnimationEvent.audioToPlay.clip  = this.ExperimentalAudioToPlay;");
+        sb.AppendLine("                    if (this.ExperimentalAudioToPlayB != null) playAudioAnimationEvent.audioToPlayB.clip = this.ExperimentalAudioToPlayB;");
         sb.AppendLine();
         sb.AppendLine("                    if (this.ExperimentalAudioClip  != null) playAudioAnimationEvent.audioClip  = this.ExperimentalAudioClip;");
         sb.AppendLine("                    if (this.ExperimentalAudioClip2 != null) playAudioAnimationEvent.audioClip2 = this.ExperimentalAudioClip2;");
