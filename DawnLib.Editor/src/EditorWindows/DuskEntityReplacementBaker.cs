@@ -264,8 +264,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         <PackageReference Include=""BepInEx.PluginInfoProps"" Version=""2.*"" />
         <PackageReference Include=""UnityEngine.Modules"" Version=""2022.3.9"" IncludeAssets=""compile"" PrivateAssets=""all"" />
         <PackageReference Include=""LethalCompany.GameLibs.Steam"" Publicize=""true"" Version=""*-*"" PrivateAssets=""all"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.2.16"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.2.16"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.3.5"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.3.5"" />
     </ItemGroup>" +
     (!string.IsNullOrEmpty(extraRef) ?
     $@"
