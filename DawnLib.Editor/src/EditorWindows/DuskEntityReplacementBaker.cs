@@ -13,6 +13,8 @@ public class DuskEntityReplacementBaker : EditorWindow
 {
     private UnityEngine.Object? source;
     private MonoScript? chosenClass;
+    private bool IsForUnlockable;
+    private bool GenerateExtraAudioAnimationFields;
     private string outputFolder = "";
     private string authorName = "placeholder";
 
@@ -27,6 +29,8 @@ public class DuskEntityReplacementBaker : EditorWindow
 
     private void OnGUI()
     {
+        IsForUnlockable = EditorGUILayout.Toggle("For An Unlockable", IsForUnlockable);
+        GenerateExtraAudioAnimationFields = EditorGUILayout.Toggle("Generate Extra Audio Animation Fields", GenerateExtraAudioAnimationFields);
         source = EditorGUILayout.ObjectField("Source (AI)", source, typeof(MonoScript), false);
         chosenClass = source as MonoScript;
 
@@ -75,9 +79,9 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
-        if (!typeof(EnemyAI).IsAssignableFrom(type) && !typeof(GrabbableObject).IsAssignableFrom(type))
+        if (!typeof(EnemyAI).IsAssignableFrom(type) && !typeof(GrabbableObject).IsAssignableFrom(type) && !IsForUnlockable)
         {
-            EditorUtility.DisplayDialog("Dusk", "Selected class is not an EnemyAI or a GrabbableObject so it is not valid.", "OK");
+            EditorUtility.DisplayDialog("Dusk", "Selected class is not an EnemyAI or a GrabbableObject or for an Unlockable so it is not valid.", "OK");
             return;
         }
 
@@ -146,7 +150,6 @@ public class DuskEntityReplacementBaker : EditorWindow
         if (audioFields.Count == 0 && audioProperties.Count == 0 && audioListFields.Count == 0 && audioArrayFields.Count == 0 && audioSourceFields.Count == 0 && particleSystemFields.Count == 0 && particleSystemProperties.Count == 0 && particleSystemListFields.Count == 0 && particleSystemArrayFields.Count == 0)
         {
             EditorUtility.DisplayDialog("Dusk Entity Replacement", "No audio or particle system fields/properties found", "OK");
-            return;
         }
 
         Assembly srcAsm = type.Assembly;
@@ -167,7 +170,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         EnsureProjectScaffold(projRoot, genDir, perAsmAssemblyName, extraRefName, extraRefPath);
-        WriteOrUpdateGeneratedClass(genDir, type, audioClipsWithTimeFields, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
+        WriteOrUpdateGeneratedClass(genDir, type, IsForUnlockable, GenerateExtraAudioAnimationFields, audioClipsWithTimeFields, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
 
         if (!RunDotnetBuild(projRoot, perAsmAssemblyName, out var builtDllPath, out var stdout))
         {
@@ -273,7 +276,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>";
     }
 
-    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, List<FieldInfo> audioClipsWithTimeFields, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
+    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, bool IsForUnlockable, bool GenerateExtraAudioAnimationFields, List<FieldInfo> audioClipsWithTimeFields, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
     {
         string typeName = type.FullName;
         StringBuilder stringBuilder = new(typeName.Length);
@@ -302,6 +305,11 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         {
             sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Item Replacement Definition"", menuName = $""Entity Replacements/Item Replacements/{type.FullName}"")]");
             sb.AppendLine($"    public class {className} : DuskItemReplacementDefinition<{type.FullName}>");
+        }
+        else if (IsForUnlockable)
+        {
+            sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Unlockable Replacement Definition"", menuName = $""Entity Replacements/Unlockable Replacements/{type.FullName}"")]");
+            sb.AppendLine($"    public class {className} : DuskUnlockableReplacementDefinition<{type.FullName}>");
         }
         sb.AppendLine("    {");
 
@@ -352,61 +360,72 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"        public ParticleSystem? {propertyInfo.Name} = null;");
         }
 
-        sb.AppendLine();
-        sb.AppendLine(@"        [Header(""Experimental (Usually vanilla only): PlayAudioAnimationEvent overrides"")]");
-        sb.AppendLine("        public AudioClip? ExperimentalAudioToPlay = null;");
-        sb.AppendLine("        public AudioClip? ExperimentalAudioToPlayB = null;");
-        sb.AppendLine("        public AudioClip? ExperimentalAudioClip = null;");
-        sb.AppendLine("        public AudioClip? ExperimentalAudioClip2 = null;");
-        sb.AppendLine("        public AudioClip? ExperimentalAudioClip3 = null;");
-        sb.AppendLine("        public AudioClip[] ExperimentalRandomClips  = System.Array.Empty<AudioClip>();");
-        sb.AppendLine("        public AudioClip[] ExperimentalRandomClips2 = System.Array.Empty<AudioClip>();");
-        sb.AppendLine("        public ParticleSystem? ExperimentalParticle = null;");
+        if (GenerateExtraAudioAnimationFields)
+        {
+            sb.AppendLine();
+            sb.AppendLine(@"        [Header(""Experimental (Usually vanilla only): PlayAudioAnimationEvent overrides"")]");
+            sb.AppendLine("        public AudioClip? ExperimentalAudioToPlay = null;");
+            sb.AppendLine("        public AudioClip? ExperimentalAudioToPlayB = null;");
+            sb.AppendLine("        public AudioClip? ExperimentalAudioClip = null;");
+            sb.AppendLine("        public AudioClip? ExperimentalAudioClip2 = null;");
+            sb.AppendLine("        public AudioClip? ExperimentalAudioClip3 = null;");
+            sb.AppendLine("        public AudioClip[] ExperimentalRandomClips  = System.Array.Empty<AudioClip>();");
+            sb.AppendLine("        public AudioClip[] ExperimentalRandomClips2 = System.Array.Empty<AudioClip>();");
+            sb.AppendLine("        public ParticleSystem? ExperimentalParticle = null;");            
+        }
 
         sb.AppendLine();
-        sb.AppendLine($"        protected override void Apply({type.FullName} {type.Name})");
+        if (!IsForUnlockable)
+        {
+            sb.AppendLine($"        protected override void Apply({type.FullName} {type.Name})");
+        }
+        else
+        {
+            sb.AppendLine($"        protected override void Apply(Dusk.DuskUnlockable {type.Name})");
+        }
         sb.AppendLine("        {");
-
+        // CodeRebirth.src.Unlockables.ShockwaveGalAI component = DuskUnlockable.GetComponentInChildren<CodeRebirth.src.Unlockables.ShockwaveGalAI>().blahblahchanges
+        sb.AppendLine($"            {type.FullName} component = {type.Name}.gameObject.GetComponentInChildren<{type.FullName}>();");
         foreach (FieldInfo fieldInfo in audioClipsWithTimeFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name}.audioClips.Length > 0)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
         foreach (FieldInfo fieldInfo in audioArrayFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name}.Length > 0)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
         foreach (FieldInfo fieldInfo in audioSourceFields)
         {
-            sb.AppendLine($"            if ({type.Name}.{fieldInfo.Name}.clip != null && this.potential{fieldInfo.Name.ToCapitalized()} != null)");
+            sb.AppendLine($"            if (component.{fieldInfo.Name}.clip != null && this.potential{fieldInfo.Name.ToCapitalized()} != null)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name}.clip = this.potential{fieldInfo.Name.ToCapitalized()};");
+            sb.AppendLine($"                component.{fieldInfo.Name}.clip = this.potential{fieldInfo.Name.ToCapitalized()};");
             sb.AppendLine($"            }}");
         }
         foreach (FieldInfo fieldInfo in audioListFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name}.Count > 0)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
         foreach (PropertyInfo propertyInfo in audioProperties)
         {
             sb.AppendLine($"            if (this.{propertyInfo.Name} != null)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"                component.{propertyInfo.Name} = this.{propertyInfo.Name};");
             sb.AppendLine($"            }}");
         }
         foreach (FieldInfo fieldInfo in audioFields)
         {
             sb.AppendLine($"            if (this.{fieldInfo.Name} != null)");
             sb.AppendLine($"            {{");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
 
@@ -417,14 +436,14 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                for (int i = 0; i < this.{fieldInfo.Name}.Length; i++)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    ParticleSystem? newParticleSystem = this.{fieldInfo.Name}[i];");
-            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type.Name}.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    ParticleSystem targetParticleSystem = component.{fieldInfo.Name}[i];");
             sb.AppendLine($"                    if (newParticleSystem == null || targetParticleSystem == null) continue;");
             sb.AppendLine($"                    targetParticleSystem.enabled = false;");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
             sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
             sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
             sb.AppendLine($"                }}");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
         foreach (FieldInfo fieldInfo in particleSystemListFields)
@@ -434,13 +453,13 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"                for (int i = 0; i < this.{fieldInfo.Name}.Count; i++)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    ParticleSystem? newParticleSystem = this.{fieldInfo.Name}[i];");
-            sb.AppendLine($"                    ParticleSystem targetParticleSystem = {type.Name}.{fieldInfo.Name}[i];");
+            sb.AppendLine($"                    ParticleSystem targetParticleSystem = component.{fieldInfo.Name}[i];");
             sb.AppendLine($"                    if (newParticleSystem == null || targetParticleSystem == null) continue;");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
             sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
             sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
             sb.AppendLine($"                }}");
-            sb.AppendLine($"                {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"            }}");
         }
         foreach (PropertyInfo propertyInfo in particleSystemProperties)
@@ -448,13 +467,13 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            if (this.{propertyInfo.Name} != null)");
             sb.AppendLine($"            {{");
             sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{propertyInfo.Name};");
-            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type.Name}.{propertyInfo.Name};");
+            sb.AppendLine($"                ParticleSystem targetParticleSystem = component.{propertyInfo.Name};");
             sb.AppendLine($"                if (newParticleSystem != null && targetParticleSystem != null)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
             sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
             sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
-            sb.AppendLine($"                    {type.Name}.{propertyInfo.Name} = this.{propertyInfo.Name};");
+            sb.AppendLine($"                    component.{propertyInfo.Name} = this.{propertyInfo.Name};");
             sb.AppendLine($"                }}");
             sb.AppendLine($"            }}");
         }
@@ -463,49 +482,52 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine($"            if (this.{fieldInfo.Name} != null)");
             sb.AppendLine($"            {{");
             sb.AppendLine($"                ParticleSystem? newParticleSystem = this.{fieldInfo.Name};");
-            sb.AppendLine($"                ParticleSystem targetParticleSystem = {type.Name}.{fieldInfo.Name};");
+            sb.AppendLine($"                ParticleSystem targetParticleSystem = component.{fieldInfo.Name};");
             sb.AppendLine($"                if (newParticleSystem != null && targetParticleSystem != null)");
             sb.AppendLine($"                {{");
             sb.AppendLine($"                    GameObject newParticle = GameObject.Instantiate(newParticleSystem.gameObject, targetParticleSystem.transform.parent);");
             sb.AppendLine($"                    newParticle.name = targetParticleSystem.gameObject.name;");
             sb.AppendLine($"                    Destroy(targetParticleSystem.gameObject);");
-            sb.AppendLine($"                    {type.Name}.{fieldInfo.Name} = this.{fieldInfo.Name};");
+            sb.AppendLine($"                    component.{fieldInfo.Name} = this.{fieldInfo.Name};");
             sb.AppendLine($"                }}");
             sb.AppendLine($"            }}");
         }
 
-        sb.AppendLine();
-        sb.AppendLine($"            Animator? animator = {type.Name}.GetComponentInChildren<Animator>(true);");
-        sb.AppendLine("            if (animator != null)");
-        sb.AppendLine("            {");
-        sb.AppendLine("                PlayAudioAnimationEvent? playAudioAnimationEvent = animator.gameObject.GetComponent<PlayAudioAnimationEvent>();");
-        sb.AppendLine("                if (playAudioAnimationEvent != null)");
-        sb.AppendLine("                {");
-        sb.AppendLine("                    if (this.ExperimentalAudioToPlay  != null) playAudioAnimationEvent.audioToPlay.clip  = this.ExperimentalAudioToPlay;");
-        sb.AppendLine("                    if (this.ExperimentalAudioToPlayB != null) playAudioAnimationEvent.audioToPlayB.clip = this.ExperimentalAudioToPlayB;");
-        sb.AppendLine();
-        sb.AppendLine("                    if (this.ExperimentalAudioClip  != null) playAudioAnimationEvent.audioClip  = this.ExperimentalAudioClip;");
-        sb.AppendLine("                    if (this.ExperimentalAudioClip2 != null) playAudioAnimationEvent.audioClip2 = this.ExperimentalAudioClip2;");
-        sb.AppendLine("                    if (this.ExperimentalAudioClip3 != null) playAudioAnimationEvent.audioClip3 = this.ExperimentalAudioClip3;");
-        sb.AppendLine();
-        sb.AppendLine("                    if (this.ExperimentalRandomClips.Length > 0 && playAudioAnimationEvent.randomClips.Length > 0)");
-        sb.AppendLine("                    {");
-        sb.AppendLine("                        playAudioAnimationEvent.randomClips = this.ExperimentalRandomClips;");
-        sb.AppendLine("                    }");
-        sb.AppendLine("                    if (this.ExperimentalRandomClips2.Length > 0 && playAudioAnimationEvent.randomClips2.Length > 0)");
-        sb.AppendLine("                    {");
-        sb.AppendLine("                        playAudioAnimationEvent.randomClips2 = this.ExperimentalRandomClips2;");
-        sb.AppendLine("                    }");
-        sb.AppendLine();
-        sb.AppendLine("                    if (this.ExperimentalParticle != null && playAudioAnimationEvent.particle != null)");
-        sb.AppendLine("                    {");
-        sb.AppendLine("                        GameObject newGameObject = GameObject.Instantiate(this.ExperimentalParticle.gameObject, playAudioAnimationEvent.particle.transform.parent);");
-        sb.AppendLine("                        newGameObject.name = playAudioAnimationEvent.particle.gameObject.name;");
-        sb.AppendLine("                        Destroy(playAudioAnimationEvent.particle.gameObject);");
-        sb.AppendLine("                        playAudioAnimationEvent.particle = newGameObject.GetComponent<ParticleSystem>();");
-        sb.AppendLine("                    }");
-        sb.AppendLine("                }");
-        sb.AppendLine("            }");
+        if (GenerateExtraAudioAnimationFields)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"            Animator? animator = component.GetComponentInChildren<Animator>(true);");
+            sb.AppendLine("            if (animator != null)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                PlayAudioAnimationEvent? playAudioAnimationEvent = animator.gameObject.GetComponent<PlayAudioAnimationEvent>();");
+            sb.AppendLine("                if (playAudioAnimationEvent != null)");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    if (this.ExperimentalAudioToPlay  != null) playAudioAnimationEvent.audioToPlay.clip  = this.ExperimentalAudioToPlay;");
+            sb.AppendLine("                    if (this.ExperimentalAudioToPlayB != null) playAudioAnimationEvent.audioToPlayB.clip = this.ExperimentalAudioToPlayB;");
+            sb.AppendLine();
+            sb.AppendLine("                    if (this.ExperimentalAudioClip  != null) playAudioAnimationEvent.audioClip  = this.ExperimentalAudioClip;");
+            sb.AppendLine("                    if (this.ExperimentalAudioClip2 != null) playAudioAnimationEvent.audioClip2 = this.ExperimentalAudioClip2;");
+            sb.AppendLine("                    if (this.ExperimentalAudioClip3 != null) playAudioAnimationEvent.audioClip3 = this.ExperimentalAudioClip3;");
+            sb.AppendLine();
+            sb.AppendLine("                    if (this.ExperimentalRandomClips.Length > 0 && playAudioAnimationEvent.randomClips.Length > 0)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        playAudioAnimationEvent.randomClips = this.ExperimentalRandomClips;");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                    if (this.ExperimentalRandomClips2.Length > 0 && playAudioAnimationEvent.randomClips2.Length > 0)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        playAudioAnimationEvent.randomClips2 = this.ExperimentalRandomClips2;");
+            sb.AppendLine("                    }");
+            sb.AppendLine();
+            sb.AppendLine("                    if (this.ExperimentalParticle != null && playAudioAnimationEvent.particle != null)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        GameObject newGameObject = GameObject.Instantiate(this.ExperimentalParticle.gameObject, playAudioAnimationEvent.particle.transform.parent);");
+            sb.AppendLine("                        newGameObject.name = playAudioAnimationEvent.particle.gameObject.name;");
+            sb.AppendLine("                        Destroy(playAudioAnimationEvent.particle.gameObject);");
+            sb.AppendLine("                        playAudioAnimationEvent.particle = newGameObject.GetComponent<ParticleSystem>();");
+            sb.AppendLine("                    }");
+            sb.AppendLine("                }");
+            sb.AppendLine("            }");            
+        }
 
         sb.AppendLine("        }");
         sb.AppendLine("    }");
