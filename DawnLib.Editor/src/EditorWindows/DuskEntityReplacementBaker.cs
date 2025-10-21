@@ -13,6 +13,7 @@ public class DuskEntityReplacementBaker : EditorWindow
 {
     private UnityEngine.Object? source;
     private MonoScript? chosenClass;
+    private bool IsForMapObject;
     private bool IsForUnlockable;
     private bool GenerateExtraAudioAnimationFields;
     private string outputFolder = "";
@@ -29,6 +30,7 @@ public class DuskEntityReplacementBaker : EditorWindow
 
     private void OnGUI()
     {
+        IsForMapObject = EditorGUILayout.Toggle("For a Map Object", IsForMapObject);
         IsForUnlockable = EditorGUILayout.Toggle("For An Unlockable", IsForUnlockable);
         GenerateExtraAudioAnimationFields = EditorGUILayout.Toggle("Generate Extra Audio Animation Fields", GenerateExtraAudioAnimationFields);
         source = EditorGUILayout.ObjectField("Source (AI)", source, typeof(MonoScript), false);
@@ -79,9 +81,9 @@ public class DuskEntityReplacementBaker : EditorWindow
             return;
         }
 
-        if (!typeof(EnemyAI).IsAssignableFrom(type) && !typeof(GrabbableObject).IsAssignableFrom(type) && !IsForUnlockable)
+        if (!typeof(EnemyAI).IsAssignableFrom(type) && !typeof(GrabbableObject).IsAssignableFrom(type) && !IsForUnlockable && !IsForMapObject)
         {
-            EditorUtility.DisplayDialog("Dusk", "Selected class is not an EnemyAI or a GrabbableObject or for an Unlockable so it is not valid.", "OK");
+            EditorUtility.DisplayDialog("Dusk", "Selected class is not an EnemyAI or a GrabbableObject or for an Unlockable or a Map Object, so it is not valid.", "OK");
             return;
         }
 
@@ -170,7 +172,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         }
 
         EnsureProjectScaffold(projRoot, genDir, perAsmAssemblyName, extraRefName, extraRefPath);
-        WriteOrUpdateGeneratedClass(genDir, type, IsForUnlockable, GenerateExtraAudioAnimationFields, audioClipsWithTimeFields, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
+        WriteOrUpdateGeneratedClass(genDir, type, IsForUnlockable, IsForMapObject, GenerateExtraAudioAnimationFields, audioClipsWithTimeFields, audioSourceFields, audioFields, audioProperties, audioListFields, audioArrayFields, particleSystemFields, particleSystemListFields, particleSystemArrayFields, particleSystemProperties);
 
         if (!RunDotnetBuild(projRoot, perAsmAssemblyName, out var builtDllPath, out var stdout))
         {
@@ -276,7 +278,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
 </Project>";
     }
 
-    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, bool IsForUnlockable, bool GenerateExtraAudioAnimationFields, List<FieldInfo> audioClipsWithTimeFields, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
+    private static string WriteOrUpdateGeneratedClass(string GenDir, Type type, bool IsForUnlockable, bool IsForMapObject, bool GenerateExtraAudioAnimationFields, List<FieldInfo> audioClipsWithTimeFields, List<FieldInfo> audioSourceFields, List<FieldInfo> audioFields, List<PropertyInfo> audioProperties, List<FieldInfo> audioListFields, List<FieldInfo> audioArrayFields, List<FieldInfo> particleSystemFields, List<FieldInfo> particleSystemListFields, List<FieldInfo> particleSystemArrayFields, List<PropertyInfo> particleSystemProperties)
     {
         string typeName = type.FullName;
         StringBuilder stringBuilder = new(typeName.Length);
@@ -311,6 +313,11 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         {
             sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Unlockable Replacement Definition"", menuName = $""Entity Replacements/Unlockable Replacements/{type.FullName}"")]");
             sb.AppendLine($"    public class {className} : DuskUnlockableReplacementDefinition<Dusk.DuskUnlockable>");
+        }
+        else if (IsForMapObject)
+        {
+            sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Map Object Replacement Definition"", menuName = $""Entity Replacements/Map Object Replacements/{type.FullName}"")]");
+            sb.AppendLine($"    public class {className} : DuskMapObjectReplacementDefinition<{type.FullName}>");
         }
         sb.AppendLine("    {");
 
@@ -376,16 +383,20 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         }
 
         sb.AppendLine();
-        if (!IsForUnlockable)
+        if (!IsForUnlockable && !IsForMapObject)
         {
             sb.AppendLine($"        protected override void ApplyTyped({type.FullName} {type.Name})");
         }
-        else
+        else if (IsForUnlockable)
         {
             sb.AppendLine($"        protected override void ApplyTyped(Dusk.DuskUnlockable {type.Name})");
         }
+        else if (IsForMapObject)
+        {
+            sb.AppendLine($"        protected override void ApplyTyped(Dusk.DuskMapObject {type.Name})");
+        }
+
         sb.AppendLine("        {");
-        // CodeRebirth.src.Unlockables.ShockwaveGalAI component = DuskUnlockable.GetComponentInChildren<CodeRebirth.src.Unlockables.ShockwaveGalAI>().blahblahchanges
         sb.AppendLine($"            {type.FullName} component = {type.Name}.gameObject.GetComponentInChildren<{type.FullName}>();");
         foreach (FieldInfo fieldInfo in audioClipsWithTimeFields)
         {
