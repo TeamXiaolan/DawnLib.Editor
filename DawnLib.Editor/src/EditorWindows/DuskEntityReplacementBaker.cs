@@ -266,8 +266,8 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         <PackageReference Include=""BepInEx.PluginInfoProps"" Version=""2.*"" />
         <PackageReference Include=""UnityEngine.Modules"" Version=""2022.3.9"" IncludeAssets=""compile"" PrivateAssets=""all"" />
         <PackageReference Include=""LethalCompany.GameLibs.Steam"" Publicize=""true"" Version=""*-*"" PrivateAssets=""all"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.3.5"" />
-        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.3.5"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib"" Version=""0.3.10"" />
+        <PackageReference Include=""TeamXiaolan.DawnLib.DuskMod"" Version=""0.3.10"" />
     </ItemGroup>" +
     (!string.IsNullOrEmpty(extraRef) ?
     $@"
@@ -317,7 +317,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
         else if (IsForMapObject)
         {
             sb.AppendLine($@"    [CreateAssetMenu(fileName = ""New Map Object Replacement Definition"", menuName = $""Entity Replacements/Map Object Replacements/{type.FullName}"")]");
-            sb.AppendLine($"    public class {className} : DuskMapObjectReplacementDefinition<{type.FullName}>");
+            sb.AppendLine($"    public class {className} : DuskMapObjectReplacementDefinition<Dusk.DuskMapObject>");
         }
         sb.AppendLine("    {");
 
