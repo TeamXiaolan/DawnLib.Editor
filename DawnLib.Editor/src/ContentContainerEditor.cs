@@ -119,6 +119,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<DuskVehicleDefinition> vehicles = FindAssetsByType<DuskVehicleDefinition>().ToList();
 			List<DuskEntityReplacementDefinition> entityReplacements = FindAssetsByType<DuskEntityReplacementDefinition>().ToList();
 			List<DuskMoonDefinition> moons = FindAssetsByType<DuskMoonDefinition>().ToList();
+			List<DuskDungeonDefinition> dungeons = FindAssetsByType<DuskDungeonDefinition>().ToList();
 
 			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
@@ -152,6 +153,8 @@ public class ContentContainerEditor : UnityEditor.Editor
 			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
 			Build(entityReplacements, "EntityReplacementKeys", "Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
 			Build(moons, "MoonKeys", "DawnMoonInfo", d => d.EntityNameReference, d => d.Key);
+			Build(dungeons, "DungeonKeys", "DawnDungeonInfo", d => d.EntityNameReference, d => d.Key);
+
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
 			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
 			File.WriteAllText(outputPath, text);
