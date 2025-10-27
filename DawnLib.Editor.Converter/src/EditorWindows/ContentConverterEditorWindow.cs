@@ -50,38 +50,6 @@ public class DuskContentConverter : EditorWindow
         }
     }
 
-    private void ExtractPrefabAssets(GameObject prefab, string itemFolder)
-    {
-        if (prefab == null) return;
-
-        string prefabPath = AssetDatabase.GetAssetPath(prefab);
-        Object[] assets = AssetDatabase.LoadAllAssetsAtPath(prefabPath);
-
-        foreach (Object asset in assets)
-        {
-            if (asset is Mesh)
-            {
-                CopyAsset(asset, Path.Combine(itemFolder, "Models"));
-            }
-            else if (asset is Material)
-            {
-                CopyAsset(asset, Path.Combine(itemFolder, "Materials"));
-            }
-            else if (asset is Texture)
-            {
-                CopyAsset(asset, Path.Combine(itemFolder, "Textures"));
-            }
-            else if (asset is AnimationClip)
-            {
-                CopyAsset(asset, Path.Combine(itemFolder, "Animations"));
-            }
-            else if (asset is AudioClip)
-            {
-                CopyAsset(asset, Path.Combine(itemFolder, "Sounds"));
-            }
-        }
-    }
-
     private void CopyAsset(Object asset, string destFolder)
     {
         string sourcePath = AssetDatabase.GetAssetPath(asset);
@@ -99,7 +67,7 @@ public class DuskContentConverter : EditorWindow
         DuskItemDefinition definition = ScriptableObject.CreateInstance<DuskItemDefinition>();
         definition.Item = item;
 
-        string savePath = Path.Combine(registryPath, $"{item.itemName.Where(c => !char.IsLetterOrDigit(c) && c != ' ')}DuskItemDefinition.asset");
+        string savePath = Path.Combine(registryPath, $"{item.itemName.Replace(" ", "")}DuskItemDefinition.asset");
         AssetDatabase.CreateAsset(definition, savePath);
         AssetDatabase.SaveAssets();
     }
@@ -109,7 +77,7 @@ public class DuskContentConverter : EditorWindow
         CreateAppropriateFolders(out string modPath);
         CreateModInfoAndContainerAssets(modPath);
         HandleExtendedItems(modPath);
-        // HandleExtededEnemies();
+        // HandleExtendedEnemies();
         // Find the approrpriate folder in the path Assets/LethalCompany/Mods/plugins/ModName where ModName is a folder we create with this tool with the mod's name
         // inside the ModName folder we need to create the following folders: AssetBundles, Dependencies, OutsideHazards, InsideHazards, Items, Enemies, EntitySkins, Moons, Interiors, Unlockables, Weathers
         // Then we need to look for all instances of the SO ExtendedItem, grab the `Item` reference inside of it and make a folder for that item in the Items folder using `Item.itemName` but getting rid of all spaces in the name.
@@ -125,7 +93,7 @@ public class DuskContentConverter : EditorWindow
 
     private void CreateAppropriateFolders(out string modPath)
     {
-        string basePath = Application.dataPath + "LethalCompany/Mods/plugins";
+        string basePath = "Assets/LethalCompany/Mods/plugins";
         modPath = Path.Combine(basePath, modName.Replace(" ", ""));
 
         if (!AssetDatabase.IsValidFolder(basePath))
@@ -188,7 +156,7 @@ public class DuskContentConverter : EditorWindow
                 }
             }
 
-            ExtractPrefabAssets(extendedItem.Item.spawnPrefab, itemFolder);
+            PrefabAssetExtractor.ExtractPrefabAssets(extendedItem.Item.spawnPrefab, itemFolder);
             CreateItemDefinition(extendedItem.Item, Path.Combine(itemFolder, "Registry"));
         }
     }
