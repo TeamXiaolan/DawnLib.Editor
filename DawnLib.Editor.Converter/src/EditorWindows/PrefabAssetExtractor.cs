@@ -8,13 +8,21 @@ public static class PrefabAssetExtractor
 {
     public static void ExtractPrefabAssets(GameObject prefab, string folderPath)
     {
-        if (prefab == null) return;
+        if (prefab == null)
+        {
+            return;
+        }
 
         HashSet<string> modelPaths = new();
-        HashSet<string> materialPaths = new();
-        HashSet<string> texturePaths = new();
         HashSet<string> animPaths = new();
         HashSet<string> audioPaths = new();
+        HashSet<string> copiedTexturePaths = new();
+
+        string modelsOut = Path.Combine(folderPath, "Models");
+        string materialsOut = Path.Combine(folderPath, "Materials");
+        string texturesOut = Path.Combine(folderPath, "Textures");
+        string animsOut = Path.Combine(folderPath, "Animations");
+        string soundsOut = Path.Combine(folderPath, "Sounds");
 
         Component[] components = prefab.GetComponentsInChildren<Component>(true);
 
@@ -46,15 +54,10 @@ public static class PrefabAssetExtractor
                     foreach (Material material in sharedMats)
                     {
                         if (material == null)
-                        {
                             continue;
-                        }
-                        AddPath(material, materialPaths);
 
-                        foreach (Texture texture in GetAllTexturesFromMaterial(material))
-                        {
-                            AddPath(texture, texturePaths);
-                        }
+                        EnsureStandaloneMaterialAsset(material, materialsOut, out Material savedMat);
+                        CopyAllMaterialTextures(savedMat, texturesOut, copiedTexturePaths);
                     }
                 }
             }
@@ -82,11 +85,12 @@ public static class PrefabAssetExtractor
             }
         }
 
-        CopyAll(modelPaths, Path.Combine(folderPath, "Models"));
-        CopyAll(materialPaths, Path.Combine(folderPath, "Materials"));
-        CopyAll(texturePaths, Path.Combine(folderPath, "Textures"));
-        CopyAll(animPaths, Path.Combine(folderPath, "Animations"));
-        CopyAll(audioPaths, Path.Combine(folderPath, "Sounds"));
+        CopyAll(modelPaths, modelsOut);
+        CopyAll(animPaths, animsOut);
+        CopyAll(audioPaths, soundsOut);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 
     private static void AddPath(Object obj, HashSet<string> set)
@@ -97,7 +101,7 @@ public static class PrefabAssetExtractor
         }
 
         string path = AssetDatabase.GetAssetPath(obj);
-        if (!string.IsNullOrEmpty(path))
+        if (!string.IsNullOrEmpty(path) && path.StartsWith("Assets/"))
         {
             set.Add(path);
         }
@@ -125,32 +129,66 @@ public static class PrefabAssetExtractor
         }
     }
 
-    private static IEnumerable<Texture> GetAllTexturesFromMaterial(Material material)
+    private static void EnsureStandaloneMaterialAsset(Material material, string materialsOut, out Material savedMat)
     {
-        HashSet<Texture> results = new();
+        Directory.CreateDirectory(materialsOut);
+
+        string path = AssetDatabase.GetAssetPath(material);
+        if (!string.IsNullOrEmpty(path) && path.EndsWith(".mat"))
+        {
+            CopyAssetFile(path, materialsOut);
+            string newPath = Path.Combine(materialsOut, Path.GetFileName(path)).Replace("\\", "/");
+            savedMat = AssetDatabase.LoadAssetAtPath<Material>(newPath) ?? material;
+            return;
+        }
+
+        string targetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(materialsOut, $"{material.name}.mat").Replace("\\", "/"));
+
+        Material matClone = Object.Instantiate(material);
+        matClone.name = Path.GetFileNameWithoutExtension(targetPath);
+        AssetDatabase.CreateAsset(matClone, targetPath);
+        EditorUtility.CopySerialized(material, matClone);
+        savedMat = matClone;
+    }
+
+    private static void CopyAllMaterialTextures(Material material, string texturesOut, HashSet<string> copiedTexturePaths)
+    {
         if (material == null)
         {
-            return results;
+            return;
         }
 
-        SerializedObject serializedObject = new(material);
-        SerializedProperty serializedProperty = serializedObject.GetIterator();
-
-        if (serializedProperty.Next(true))
+        Directory.CreateDirectory(texturesOut);
+        foreach (string propName in material.GetTexturePropertyNames())
         {
-            do
+            Texture tex = material.GetTexture(propName);
+            if (tex == null) continue;
+
+            string texPath = AssetDatabase.GetAssetPath(tex);
+            if (string.IsNullOrEmpty(texPath))
+                continue;
+
+            if (!texPath.StartsWith("Assets/"))
+                continue;
+
+            if (copiedTexturePaths.Add(texPath))
             {
-                if (serializedProperty.propertyType == SerializedPropertyType.ObjectReference)
-                {
-                    Texture? texture = serializedProperty.objectReferenceValue as Texture;
-                    if (texture != null)
-                    {
-                        results.Add(texture);
-                    }
-                }
-            } while (serializedProperty.Next(false));
+                CopyAssetFile(texPath, texturesOut);
+            }
         }
-        return results;
+    }
+
+    private static void CopyAssetFile(string sourcePath, string targetFolder)
+    {
+        if (string.IsNullOrEmpty(sourcePath))
+            return;
+
+        Directory.CreateDirectory(targetFolder);
+
+        string fileName = Path.GetFileName(sourcePath);
+        string destinationPath = Path.Combine(targetFolder, fileName).Replace("\\", "/");
+        destinationPath = AssetDatabase.GenerateUniqueAssetPath(destinationPath);
+        AssetDatabase.CopyAsset(sourcePath, destinationPath);
     }
 
     private static IEnumerable<AnimationClip> GetClipsFromRuntimeController(RuntimeAnimatorController runtimeController)
