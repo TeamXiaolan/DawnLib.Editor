@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -138,14 +139,34 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         string currentKeyName;
         bool contentDefinitionExists = false;
-        if (property.serializedObject.targetObject is DuskContentDefinition contentDefinition && fieldInfo.GetCustomAttribute<UnlockedNamespacedKey>() == null)
+
+        UnlockedNamespacedKey unlockedNamespacedKey = fieldInfo.GetCustomAttribute<UnlockedNamespacedKey>();
+        DefaultKeySourceAttribute defaultKeySource = fieldInfo.GetCustomAttribute<DefaultKeySourceAttribute>();
+
+        if (property.serializedObject.targetObject is DuskContentDefinition contentDefinition && unlockedNamespacedKey == null)
         {
             contentDefinitionExists = true;
-            string defaultKey = contentDefinition.GetDefaultKey();
+
+            string? defaultKey = null;
+
+            if (defaultKeySource != null)
+            {
+                object? owner = property.GetOwnerObjectOfProperty();
+                int? elementIndex = property.GetElementIndex();
+
+                defaultKey = GetDefaultKeyFromMember(owner, defaultKeySource.MemberName, defaultKeySource.Normalize, elementIndex);
+            }
+
+            if (string.IsNullOrEmpty(defaultKey))
+            {
+                defaultKey = ContentContainerEditor.NormalizeNamespacedKey(contentDefinition.GetDefaultKey(), false);
+            }
+
             if (keyProp.stringValue != defaultKey)
             {
                 keyProp.SetStringReference(defaultKey, "Change Key");
             }
+
             currentKeyName = defaultKey;
         }
         else
@@ -154,7 +175,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         }
 
         float line = EditorGUIUtility.singleLineHeight;
-        float svs  = EditorGUIUtility.standardVerticalSpacing;
+        float svs = EditorGUIUtility.standardVerticalSpacing;
 
         float y = position.y;
         y += line + svs;
@@ -190,6 +211,71 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         h += svs + line;
 
         return h;
+    }
+
+    private static string? GetDefaultKeyFromMember(object? target, string memberName, bool normalize, int? index)
+    {
+        if (target == null)
+        {
+            return null;
+        }
+
+        const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        Type type = target.GetType();
+
+        if (type.GetField(memberName, BINDING_FLAGS) is FieldInfo fieldInfo)
+        {
+            return CoerceKey(fieldInfo.GetValue(target), normalize, index);
+        }
+
+        if (type.GetProperty(memberName, BINDING_FLAGS) is PropertyInfo propertyInfo)
+        {
+            return CoerceKey(propertyInfo.GetValue(target, null), normalize, index);
+        }
+
+        if (type.GetMethod(memberName, BINDING_FLAGS, null, [typeof(int)], null) is MethodInfo methodInfoInt && index.HasValue)
+        {
+            return CoerceKey(methodInfoInt.Invoke(target, [index.Value]), normalize, index);
+        }
+
+        if (type.GetMethod(memberName, BINDING_FLAGS, null, Type.EmptyTypes, null) is MethodInfo methodInfo)
+        {
+            return CoerceKey(methodInfo.Invoke(target, null), normalize, index);
+        }
+
+        return null;
+    }
+
+    private static string? CoerceKey(object? value, bool normalize, int? index)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+
+        switch (value)
+        {
+            case string input:
+                return normalize ? ContentContainerEditor.NormalizeNamespacedKey(input, false) : input;
+
+            case NamespacedKey namespacedKey:
+                return normalize ? ContentContainerEditor.NormalizeNamespacedKey(namespacedKey.Key, false) : namespacedKey.Key;
+
+            case System.Collections.IList list when index.HasValue && index.Value >= 0 && index.Value < list.Count:
+                object element = list[index.Value];
+                if (element is NamespacedKey namespacedKeyElement)
+                {
+                    return normalize ? ContentContainerEditor.NormalizeNamespacedKey(namespacedKeyElement.Key, false) : namespacedKeyElement.Key;
+                }
+
+                if (element is string inputElement)
+                {
+                    return normalize ? ContentContainerEditor.NormalizeNamespacedKey(inputElement, false) : inputElement;
+                }
+
+                return null;
+        }
+        return null;
     }
 }
 

@@ -92,4 +92,52 @@ static class SerializedPropertyExtensions
         EditorUtility.SetDirty(property.serializedObject.targetObject);
         property.serializedObject.ApplyModifiedProperties();
     }
+
+    public static object? GetOwnerObjectOfProperty(this SerializedProperty serializedProperty)
+    {
+        if (serializedProperty == null)
+        {
+            return null;
+        }
+
+        string path = serializedProperty.propertyPath.Replace(".Array.data[", "[");
+        object? targetObject = serializedProperty.serializedObject.targetObject;
+        string[] pathParts = path.Split('.');
+
+        for (int i = 0; i < pathParts.Length - 1; i++)
+        {
+            string element = pathParts[i];
+            if (element.Contains("["))
+            {
+                string elementName = element[..element.IndexOf("[")];
+                int index = Convert.ToInt32(element[element.IndexOf("[")..].Trim('[', ']'));
+                targetObject = GetValue_Imp(targetObject!, elementName, index);
+            }
+            else
+            {
+                targetObject = GetValue_Imp(targetObject!, element);
+            }
+            if (targetObject == null)
+            {
+                break;
+            }
+        }
+        return targetObject;
+    }
+
+    public static int? GetElementIndex(this SerializedProperty serializedProperty)
+    {
+        if (serializedProperty == null)
+        {
+            return null;
+        }
+        string path = serializedProperty.propertyPath;
+        int lastOpenBracket = path.LastIndexOf('[');
+        int lastClosingBracket = path.LastIndexOf(']');
+        if (lastOpenBracket >= 0 && lastClosingBracket > lastOpenBracket && int.TryParse(path.AsSpan(lastOpenBracket + 1, lastClosingBracket - lastOpenBracket - 1), out int index))
+        {
+            return index;
+        }
+        return null;
+    }
 }
