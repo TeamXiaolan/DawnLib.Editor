@@ -17,9 +17,14 @@ public class DuskMoonSceneDataDrawer : PropertyDrawer
             string bundleName = data.Scene.BundleName;
 
             if (!string.IsNullOrEmpty(sceneName))
+            {
                 displayName = sceneName;
+            }
+
             if (!string.IsNullOrEmpty(bundleName))
+            {
                 displayName = $"{displayName} ({bundleName})";
+            }
         }
 
         label.text = displayName;
