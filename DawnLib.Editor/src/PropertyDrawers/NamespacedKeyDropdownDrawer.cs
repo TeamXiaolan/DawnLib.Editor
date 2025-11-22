@@ -45,9 +45,9 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
         EditorGUI.BeginProperty(position, label, property);
 
-        List<string> options = ["<None>"];
+        List<string> options = ["<None>", "lethal_company"];
         options.AddRange(EditorJsonStringList.GetList());
-        string[] displayOptions = new string[options.Count + 3];
+        string[] displayOptions = new string[options.Count + 4];
         for (int i = 0; i < options.Count; i++) displayOptions[i] = options[i];
         displayOptions[^2] = "<Remove all unused>";
         displayOptions[^1] = "<Add New>";
