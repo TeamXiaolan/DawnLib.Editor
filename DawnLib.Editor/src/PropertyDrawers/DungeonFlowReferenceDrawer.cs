@@ -15,12 +15,8 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
     {
         SerializedProperty nameProperty = property.FindPropertyRelative("_flowAssetName");
         SerializedProperty bundleNameProp = property.FindPropertyRelative("_bundleName");
-
-        if (nameProperty == null || bundleNameProp == null)
-        {
-            EditorGUI.HelpBox(position, "DungeonFlowReference must have _flowAssetName and _bundleName fields", MessageType.Error);
-            return;
-        }
+        SerializedProperty tileSetNamesProperty = property.FindPropertyRelative("_tileSetNames");
+        SerializedProperty dungeonArchetypeNamesProperty = property.FindPropertyRelative("_dungeonArchetypeNames");
 
         property.serializedObject.Update();
         EditorGUI.BeginProperty(position, label, property);
@@ -49,6 +45,8 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 DungeonFlowCache.Remove(currentName);
                 nameProperty.stringValue = string.Empty;
                 bundleNameProp.stringValue = string.Empty;
+                tileSetNamesProperty.ClearArray();
+                dungeonArchetypeNamesProperty.ClearArray();
                 currentName = string.Empty;
             }
         }
@@ -69,6 +67,23 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
 
                 nameProperty.stringValue = flowName;
                 bundleNameProp.stringValue = bundle;
+                tileSetNamesProperty.ClearArray();
+                foreach (var tileSet in pickedDungeonFlow.GetUsedTileSets())
+                {
+                    int newIndex = tileSetNamesProperty.arraySize;
+                    tileSetNamesProperty.InsertArrayElementAtIndex(newIndex);
+                    SerializedProperty elementProp = tileSetNamesProperty.GetArrayElementAtIndex(newIndex);
+                    elementProp.stringValue = tileSet.name;
+                }
+
+                dungeonArchetypeNamesProperty.ClearArray();
+                foreach (var archetype in pickedDungeonFlow.GetUsedArchetypes())
+                {
+                    int newIndex = dungeonArchetypeNamesProperty.arraySize;
+                    dungeonArchetypeNamesProperty.InsertArrayElementAtIndex(newIndex);
+                    SerializedProperty elementProp = dungeonArchetypeNamesProperty.GetArrayElementAtIndex(newIndex);
+                    elementProp.stringValue = archetype.name;
+                }
 
                 DungeonFlowCache[flowName] = pickedDungeonFlow;
                 propsChanged = true;
@@ -76,10 +91,14 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
             else
             {
                 if (!string.IsNullOrEmpty(nameProperty.stringValue))
+                {
                     DungeonFlowCache.Remove(nameProperty.stringValue);
+                }
 
                 nameProperty.stringValue = string.Empty;
                 bundleNameProp.stringValue = string.Empty;
+                tileSetNamesProperty.ClearArray();
+                dungeonArchetypeNamesProperty.ClearArray();
                 propsChanged = true;
             }
         }
