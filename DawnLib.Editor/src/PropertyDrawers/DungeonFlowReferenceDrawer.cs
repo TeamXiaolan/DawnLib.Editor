@@ -1,11 +1,12 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using DunGen.Graph;
 using Dusk.Utils;
 using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
-
 [CustomPropertyDrawer(typeof(DungeonFlowReference))]
 public class DungeonFlowReferenceDrawer : PropertyDrawer
 {
@@ -17,6 +18,7 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
         SerializedProperty bundleNameProp = property.FindPropertyRelative("_bundleName");
         SerializedProperty tileSetNamesProperty = property.FindPropertyRelative("_tileSetNames");
         SerializedProperty dungeonArchetypeNamesProperty = property.FindPropertyRelative("_dungeonArchetypeNames");
+        SerializedProperty archetypeTileSetsProperty = property.FindPropertyRelative("_archetypeTileSets");
 
         property.serializedObject.Update();
         EditorGUI.BeginProperty(position, label, property);
@@ -47,6 +49,7 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 bundleNameProp.stringValue = string.Empty;
                 tileSetNamesProperty.ClearArray();
                 dungeonArchetypeNamesProperty.ClearArray();
+                archetypeTileSetsProperty.ClearArray();
                 currentName = string.Empty;
             }
         }
@@ -68,21 +71,74 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 nameProperty.stringValue = flowName;
                 bundleNameProp.stringValue = bundle;
                 tileSetNamesProperty.ClearArray();
-                foreach (var tileSet in pickedDungeonFlow.GetUsedTileSets())
+                dungeonArchetypeNamesProperty.ClearArray();
+                archetypeTileSetsProperty.ClearArray();
+
+                var archetypeToTileSets = new SortedDictionary<string, HashSet<string>>(StringComparer.Ordinal);
+                var allTileSetNames = new HashSet<string>(StringComparer.Ordinal);
+
+                foreach (var archetype in pickedDungeonFlow.GetUsedArchetypes())
                 {
-                    int newIndex = tileSetNamesProperty.arraySize;
-                    tileSetNamesProperty.InsertArrayElementAtIndex(newIndex);
-                    SerializedProperty elementProp = tileSetNamesProperty.GetArrayElementAtIndex(newIndex);
-                    elementProp.stringValue = tileSet.name;
+                    if (archetype == null)
+                        continue;
+
+                    string archetypeName = archetype.name;
+
+                    if (!archetypeToTileSets.TryGetValue(archetypeName, out var tileSetSet))
+                    {
+                        tileSetSet = new HashSet<string>(StringComparer.Ordinal);
+                        archetypeToTileSets.Add(archetypeName, tileSetSet);
+                    }
+
+                    foreach (var tileSet in archetype.TileSets)
+                    {
+                        if (tileSet == null)
+                            continue;
+
+                        tileSetSet.Add(tileSet.name);
+                        allTileSetNames.Add(tileSet.name);
+                    }
                 }
 
-                dungeonArchetypeNamesProperty.ClearArray();
-                foreach (var archetype in pickedDungeonFlow.GetUsedArchetypes())
+                foreach (var kvp in archetypeToTileSets)
                 {
                     int newIndex = dungeonArchetypeNamesProperty.arraySize;
                     dungeonArchetypeNamesProperty.InsertArrayElementAtIndex(newIndex);
-                    SerializedProperty elementProp = dungeonArchetypeNamesProperty.GetArrayElementAtIndex(newIndex);
-                    elementProp.stringValue = archetype.name;
+                    dungeonArchetypeNamesProperty.GetArrayElementAtIndex(newIndex).stringValue = kvp.Key;
+                }
+
+                var sortedTileSets = allTileSetNames.ToList();
+                sortedTileSets.Sort(StringComparer.Ordinal);
+
+                foreach (var tileSetName in sortedTileSets)
+                {
+                    int newIndex = tileSetNamesProperty.arraySize;
+                    tileSetNamesProperty.InsertArrayElementAtIndex(newIndex);
+                    tileSetNamesProperty.GetArrayElementAtIndex(newIndex).stringValue = tileSetName;
+                }
+
+                int mappingIndex = 0;
+                foreach (var kvp in archetypeToTileSets)
+                {
+                    archetypeTileSetsProperty.InsertArrayElementAtIndex(mappingIndex);
+                    var mappingProp = archetypeTileSetsProperty.GetArrayElementAtIndex(mappingIndex);
+
+                    var archetypeNameProp = mappingProp.FindPropertyRelative("_archetypeName");
+                    var mappingTileSetNamesProp = mappingProp.FindPropertyRelative("_tileSetNames");
+
+                    archetypeNameProp.stringValue = kvp.Key;
+
+                    mappingTileSetNamesProp.ClearArray();
+                    var perArchetypeTileSets = kvp.Value.ToList();
+                    perArchetypeTileSets.Sort(StringComparer.Ordinal);
+
+                    for (int i = 0; i < perArchetypeTileSets.Count; i++)
+                    {
+                        mappingTileSetNamesProp.InsertArrayElementAtIndex(i);
+                        mappingTileSetNamesProp.GetArrayElementAtIndex(i).stringValue = perArchetypeTileSets[i];
+                    }
+
+                    mappingIndex++;
                 }
 
                 DungeonFlowCache[flowName] = pickedDungeonFlow;
@@ -99,12 +155,12 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 bundleNameProp.stringValue = string.Empty;
                 tileSetNamesProperty.ClearArray();
                 dungeonArchetypeNamesProperty.ClearArray();
+                archetypeTileSetsProperty.ClearArray();
                 propsChanged = true;
             }
         }
         else
         {
-            // Keep bundle name in sync with asset importer
             if (!string.IsNullOrEmpty(nameProperty.stringValue) && currentDungeonFlow != null)
             {
                 string assetPath = AssetDatabase.GetAssetPath(currentDungeonFlow);
