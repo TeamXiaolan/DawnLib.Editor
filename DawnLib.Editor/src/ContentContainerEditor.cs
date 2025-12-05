@@ -169,6 +169,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 			List<EnemyType> enemies = FindAssetsByType<EnemyType>().ToList();
 			UnlockablesList unlockablesList = FindAssetsByType<UnlockablesList>().ToList().First();
 			List<Item> items = FindAssetsByType<Item>().ToList();
+			List<TerminalNode> storyLogs = FindAssetsByType<TerminalNode>().Where(n => n.storyLogFileID > -1).ToList();
 			List<GameObject> mapObjects = levels.SelectMany(level => level.spawnableMapObjects.Select(m => m.prefabToSpawn).Concat(level.spawnableOutsideObjects.Select(o => o.spawnableObject.prefabToSpawn))).Distinct().ToList();
 
 			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
@@ -267,13 +268,17 @@ public class ContentContainerEditor : UnityEditor.Editor
 
 			List<WeatherEffect> weathers = LoadSampleSceneRelayTimeOfDay().effects.ToList();
 
-			BuildVanilla(weathers, "WeatherKeys", "DawnWeatherInfo",
+			BuildVanilla(weathers, "WeatherKeys", "DawnWeatherEffectInfo",
 				w => w.name,
 				obj => null,
 				true);
 
+			BuildVanilla(storyLogs, "StoryLogKeys", "DawnStoryLogInfo",
+				sl => sl.creatureName,
+				obj => obj);
+
 			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
-			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla_namespaced_keys", "json");
+			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla.namespaced_keys", "json");
 			File.WriteAllText(outputPath, text);
 		}
 	}
