@@ -20,7 +20,6 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
         SerializedProperty dungeonArchetypeNamesProperty = property.FindPropertyRelative("_dungeonArchetypeNames");
         SerializedProperty archetypeTileSetsProperty = property.FindPropertyRelative("_archetypeTileSets");
 
-        property.serializedObject.Update();
         EditorGUI.BeginProperty(position, label, property);
 
         string currentName = nameProperty.stringValue ?? string.Empty;
@@ -55,9 +54,7 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
         }
 
         EditorGUI.BeginChangeCheck();
-        var pickedDungeonFlow = (DungeonFlow)EditorGUI.ObjectField(position, label, currentDungeonFlow, typeof(DungeonFlow), false);
-
-        bool propsChanged = false;
+        DungeonFlow pickedDungeonFlow = (DungeonFlow)EditorGUI.ObjectField(position, label, currentDungeonFlow, typeof(DungeonFlow), false);
 
         if (EditorGUI.EndChangeCheck())
         {
@@ -142,7 +139,6 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 }
 
                 DungeonFlowCache[flowName] = pickedDungeonFlow;
-                propsChanged = true;
             }
             else
             {
@@ -156,7 +152,6 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 tileSetNamesProperty.ClearArray();
                 dungeonArchetypeNamesProperty.ClearArray();
                 archetypeTileSetsProperty.ClearArray();
-                propsChanged = true;
             }
         }
         else
@@ -170,14 +165,8 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 if (bundleNameProp.stringValue != importerBundle)
                 {
                     bundleNameProp.stringValue = importerBundle;
-                    propsChanged = true;
                 }
             }
-        }
-
-        if (propsChanged)
-        {
-            property.serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
         EditorGUI.EndProperty();

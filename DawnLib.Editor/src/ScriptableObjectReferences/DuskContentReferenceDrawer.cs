@@ -18,6 +18,7 @@ namespace Dawn.Editor.ScriptableObjectReferences;
 [CustomPropertyDrawer(typeof(DuskDungeonReference))]
 [CustomPropertyDrawer(typeof(DuskMoonReference))]
 [CustomPropertyDrawer(typeof(DuskEntityReplacementDefinition), true)]
+[CustomPropertyDrawer(typeof(DuskStoryLogReference))]
 public class DuskContentReferenceDrawer : PropertyDrawer
 {
     // todo: update this if an asset moves
