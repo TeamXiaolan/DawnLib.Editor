@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 using Dusk;
 using System.Diagnostics.CodeAnalysis;
+using UnityEngine.ProBuilder;
 
 namespace Dawn.Editor;
 
@@ -99,8 +100,9 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
     {
         MeshFilter[] meshFilters = prefab.GetComponentsInChildren<MeshFilter>();
         SkinnedMeshRenderer[] skinnedMeshRenderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>();
+        ProBuilderMesh[] pbMeshes = prefab.GetComponentsInChildren<ProBuilderMesh>();
 
-        if (meshFilters.Length == 0 && skinnedMeshRenderers.Length == 0)
+        if (meshFilters.Length == 0 && skinnedMeshRenderers.Length == 0 && pbMeshes.Length == 0)
             return;
 
         Color prevColor = Gizmos.color;
@@ -109,6 +111,23 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
         Gizmos.color = DuskMapObjectDefinitionCache.PreviewColor;
 
         Matrix4x4 rootInverse = prefab.transform.worldToLocalMatrix;
+
+
+        foreach (ProBuilderMesh pbMesh in pbMeshes)
+        {
+            if (pbMesh.mesh == null)
+                continue;
+
+            MeshRenderer meshRenderer = pbMesh.GetComponent<MeshRenderer>();
+            if (meshRenderer == null || !meshRenderer.enabled)
+                continue;
+
+            Matrix4x4 childLocal = rootInverse * pbMesh.transform.localToWorldMatrix;
+            Matrix4x4 matrix = spawnerTransform.localToWorldMatrix * childLocal;
+            Gizmos.matrix = matrix;
+
+            Gizmos.DrawMesh(pbMesh.mesh, Vector3.zero, Quaternion.identity, Vector3.one);
+        }
 
         foreach (MeshFilter meshFilter in meshFilters)
         {

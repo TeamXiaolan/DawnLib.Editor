@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using System.Diagnostics.CodeAnalysis;
+using UnityEngine.ProBuilder;
 
 namespace Dawn.Editor;
 [InitializeOnLoad]
@@ -42,6 +43,12 @@ public static class SpawnSyncedPrefabCache
         if (placeholder == null)
         {
             return false;
+        }
+
+        if (placeholder.GetComponentInChildren<Renderer>() != null)
+        {
+            realPrefab = placeholder;
+            return true;
         }
 
         if (!_prefabsByName.TryGetValue(placeholder.name, out List<GameObject> list) || list.Count == 0)
@@ -93,10 +100,11 @@ public class SpawnSyncedObjectEditor : UnityEditor.Editor
 
     private static void DrawPrefabHologram(GameObject prefab, Transform spawnerTransform)
     {
-        MeshFilter[] meshFilters = prefab.GetComponentsInChildren<MeshFilter>(true);
-        SkinnedMeshRenderer[] skinnedMeshRenderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+        MeshFilter[] meshFilters = prefab.GetComponentsInChildren<MeshFilter>();
+        ProBuilderMesh[] pbMeshes = prefab.GetComponentsInChildren<ProBuilderMesh>();
+        SkinnedMeshRenderer[] skinnedMeshRenderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>();
 
-        if (meshFilters.Length == 0 && skinnedMeshRenderers.Length == 0)
+        if (meshFilters.Length == 0 && skinnedMeshRenderers.Length == 0 && pbMeshes.Length == 0)
             return;
 
         Color prevColor = Gizmos.color;
@@ -105,6 +113,22 @@ public class SpawnSyncedObjectEditor : UnityEditor.Editor
         Gizmos.color = DuskMapObjectDefinitionCache.PreviewColor;
 
         Matrix4x4 rootInverse = prefab.transform.worldToLocalMatrix;
+
+        foreach (ProBuilderMesh pbMesh in pbMeshes)
+        {
+            if (pbMesh.mesh == null)
+                continue;
+
+            MeshRenderer meshRenderer = pbMesh.GetComponent<MeshRenderer>();
+            if (meshRenderer == null || !meshRenderer.enabled)
+                continue;
+
+            Matrix4x4 childLocal = rootInverse * pbMesh.transform.localToWorldMatrix;
+            Matrix4x4 matrix = spawnerTransform.localToWorldMatrix * childLocal;
+            Gizmos.matrix = matrix;
+
+            Gizmos.DrawMesh(pbMesh.mesh, Vector3.zero, Quaternion.identity, Vector3.one);
+        }
 
         foreach (MeshFilter meshFilter in meshFilters)
         {
