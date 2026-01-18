@@ -99,8 +99,8 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
     private static void DrawPrefabHologram(GameObject prefab, Transform spawnerTransform)
     {
         MeshFilter[] meshFilters = prefab.GetComponentsInChildren<MeshFilter>();
-        SkinnedMeshRenderer[] skinnedMeshRenderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>();
         ProBuilderMesh[] pbMeshes = prefab.GetComponentsInChildren<ProBuilderMesh>();
+        SkinnedMeshRenderer[] skinnedMeshRenderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>();
 
         if (meshFilters.Length == 0 && skinnedMeshRenderers.Length == 0 && pbMeshes.Length == 0)
             return;
@@ -110,8 +110,11 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
 
         Gizmos.color = DuskMapObjectDefinitionCache.PreviewColor;
 
-        Matrix4x4 rootInverse = prefab.transform.worldToLocalMatrix;
+        Matrix4x4 prefabRootInverse = prefab.transform.worldToLocalMatrix;
+        Matrix4x4 prefabRootScale = Matrix4x4.Scale(prefab.transform.localScale);
+        Matrix4x4 spawnerWorld = spawnerTransform.localToWorldMatrix;
 
+        Matrix4x4 rootScaleMatrix = prefabRootScale;
 
         foreach (ProBuilderMesh pbMesh in pbMeshes)
         {
@@ -122,9 +125,8 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
             if (meshRenderer == null || !meshRenderer.enabled)
                 continue;
 
-            Matrix4x4 childLocal = rootInverse * pbMesh.transform.localToWorldMatrix;
-            Matrix4x4 matrix = spawnerTransform.localToWorldMatrix * childLocal;
-            Gizmos.matrix = matrix;
+            Matrix4x4 childToPrefabRoot = prefabRootInverse * pbMesh.transform.localToWorldMatrix;
+            Gizmos.matrix = spawnerWorld * rootScaleMatrix * childToPrefabRoot;
 
             Gizmos.DrawMesh(pbMesh.mesh, Vector3.zero, Quaternion.identity, Vector3.one);
         }
@@ -138,9 +140,8 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
             if (meshRenderer == null || !meshRenderer.enabled)
                 continue;
 
-            Matrix4x4 childLocal = rootInverse * meshFilter.transform.localToWorldMatrix;
-            Matrix4x4 matrix = spawnerTransform.localToWorldMatrix * childLocal;
-            Gizmos.matrix = matrix;
+            Matrix4x4 childToPrefabRoot = prefabRootInverse * meshFilter.transform.localToWorldMatrix;
+            Gizmos.matrix = spawnerWorld * rootScaleMatrix * childToPrefabRoot;
 
             Gizmos.DrawMesh(meshFilter.sharedMesh, Vector3.zero, Quaternion.identity, Vector3.one);
         }
@@ -153,9 +154,8 @@ public class SpawnSyncedDawnLibObjectEditor : UnityEditor.Editor
             if (!skinnedMeshRenderer.enabled)
                 continue;
 
-            Matrix4x4 childLocal = rootInverse * skinnedMeshRenderer.transform.localToWorldMatrix;
-            Matrix4x4 matrix = spawnerTransform.localToWorldMatrix * childLocal;
-            Gizmos.matrix = matrix;
+            Matrix4x4 childToPrefabRoot = prefabRootInverse * skinnedMeshRenderer.transform.localToWorldMatrix;
+            Gizmos.matrix = spawnerWorld * rootScaleMatrix * childToPrefabRoot;
 
             Gizmos.DrawMesh(skinnedMeshRenderer.sharedMesh, Vector3.zero, Quaternion.identity, Vector3.one);
         }
