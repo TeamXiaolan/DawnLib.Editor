@@ -15,8 +15,8 @@
     
     <ItemGroup>
       <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
-      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.5.9" PrivateAssets="all" Publicize="true" />
-      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="0.5.9" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.7.5" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="0.7.5" PrivateAssets="all" Publicize="true" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <Reference Include="UnityEditor" PrivateAssets="all">
         <HintPath>$(UnityEditorPath)Editor\Data\Managed\UnityEngine\UnityEditor.dll</HintPath>

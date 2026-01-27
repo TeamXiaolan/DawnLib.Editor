@@ -34,64 +34,6 @@ public class ContentContainerEditor : UnityEditor.Editor
 		}
 	}
 
-	private static readonly Regex NamespacedKeyRegex = new(@"[?!.\n\t""`\[\]'-]");
-
-	private static readonly Dictionary<char, string> NumberWords = new()
-	{
-		{ '0', "Zero" },
-		{ '1', "One" },
-		{ '2', "Two" },
-		{ '3', "Three" },
-		{ '4', "Four" },
-		{ '5', "Five" },
-		{ '6', "Six" },
-		{ '7', "Seven" },
-		{ '8', "Eight" },
-		{ '9', "Nine" },
-	};
-
-	internal static string NormalizeNamespacedKey(string input, bool CSharpName)
-	{
-		if (string.IsNullOrEmpty(input))
-			return string.Empty;
-
-		string cleanedString = NamespacedKeyRegex.Replace(input, string.Empty);
-
-		StringBuilder cleanBuilder = new StringBuilder(cleanedString.Length);
-		bool foundAllBeginningDigits = false;
-		foreach (char character in cleanedString)
-		{
-			if (!foundAllBeginningDigits && (char.IsDigit(character) || character == ' '))
-			{
-				continue;
-			}
-			foundAllBeginningDigits = true;
-			cleanBuilder.Append(character);
-		}
-
-		StringBuilder actualWordBuilder = new StringBuilder(cleanBuilder.Length);
-		foreach (char character in cleanBuilder.ToString())
-		{
-			if (NumberWords.TryGetValue(character, out var word))
-				actualWordBuilder.Append(word);
-			else
-				actualWordBuilder.Append(character);
-		}
-
-		string result = actualWordBuilder.ToString();
-		if (CSharpName)
-		{
-			result = result.Replace(" ", "");
-			result = result.Replace("_", "");
-			result = result.ToCapitalized();
-		}
-		else
-		{
-			result = result.ToLowerInvariant().Replace(" ", "_");
-		}
-		return result.ToString();
-	}
-
 	private static string ClassNameFromNamespace(string ns, string suffix)
 	{
 		var words = ns.Split('_');
@@ -134,7 +76,7 @@ public class ContentContainerEditor : UnityEditor.Editor
 					if (!definitionsDict.TryGetValue(className, out var bucket))
 						definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
-					string csharpName = NormalizeNamespacedKey(getEntityName(def), true);
+					string csharpName = NamespacedKey.NormalizeStringForNamespacedKey(getEntityName(def), true);
 					string nsKey = getKey(def).ToString();
 
 					bucket[csharpName] = nsKey;
@@ -220,13 +162,13 @@ public class ContentContainerEditor : UnityEditor.Editor
 					}
 					else
 					{
-						csharpName = NormalizeNamespacedKey(displayName, true);
+						csharpName = NamespacedKey.NormalizeStringForNamespacedKey(displayName, true);
 					}
 
 					if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
 						continue;
 
-					string nsKey = "lethal_company:" + NormalizeNamespacedKey(displayName, false);
+					string nsKey = "lethal_company:" + NamespacedKey.NormalizeStringForNamespacedKey(displayName, false);
 
 					bucket[csharpName] = nsKey;
 

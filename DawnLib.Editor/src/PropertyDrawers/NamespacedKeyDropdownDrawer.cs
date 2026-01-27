@@ -73,7 +73,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             {
                 if (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter)
                 {
-                    string value = ContentContainerEditor.NormalizeNamespacedKey(state.customValue.Trim(), false);
+                    string value = NamespacedKey.NormalizeStringForNamespacedKey(state.customValue.Trim(), false);
                     if (!string.IsNullOrEmpty(value))
                     {
                         if (!options.Contains(value))
@@ -159,7 +159,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
 
             if (string.IsNullOrEmpty(defaultKey))
             {
-                defaultKey = ContentContainerEditor.NormalizeNamespacedKey(contentDefinition.GetDefaultKey(), false);
+                defaultKey = NamespacedKey.NormalizeStringForNamespacedKey(contentDefinition.GetDefaultKey(), false);
             }
 
             if (keyProp.stringValue != defaultKey)
@@ -171,7 +171,7 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         }
         else
         {
-            currentKeyName = ContentContainerEditor.NormalizeNamespacedKey(keyProp.stringValue, false);
+            currentKeyName = NamespacedKey.NormalizeStringForNamespacedKey(keyProp.stringValue, false);
         }
 
         float line = EditorGUIUtility.singleLineHeight;
@@ -256,21 +256,21 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
         switch (value)
         {
             case string input:
-                return normalize ? ContentContainerEditor.NormalizeNamespacedKey(input, false) : input;
+                return normalize ? NamespacedKey.NormalizeStringForNamespacedKey(input, false) : input;
 
             case NamespacedKey namespacedKey:
-                return normalize ? ContentContainerEditor.NormalizeNamespacedKey(namespacedKey.Key, false) : namespacedKey.Key;
+                return normalize ? NamespacedKey.NormalizeStringForNamespacedKey(namespacedKey.Key, false) : namespacedKey.Key;
 
             case System.Collections.IList list when index.HasValue && index.Value >= 0 && index.Value < list.Count:
                 object element = list[index.Value];
                 if (element is NamespacedKey namespacedKeyElement)
                 {
-                    return normalize ? ContentContainerEditor.NormalizeNamespacedKey(namespacedKeyElement.Key, false) : namespacedKeyElement.Key;
+                    return normalize ? NamespacedKey.NormalizeStringForNamespacedKey(namespacedKeyElement.Key, false) : namespacedKeyElement.Key;
                 }
 
                 if (element is string inputElement)
                 {
-                    return normalize ? ContentContainerEditor.NormalizeNamespacedKey(inputElement, false) : inputElement;
+                    return normalize ? NamespacedKey.NormalizeStringForNamespacedKey(inputElement, false) : inputElement;
                 }
 
                 return null;
