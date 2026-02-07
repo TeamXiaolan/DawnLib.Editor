@@ -69,9 +69,9 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
             GUI.SetNextControlName(ctrlName);
             state.customValue = EditorGUI.TextField(addNewRect, state.customValue);
 
-            if (Event.current.type == EventType.KeyUp)
+            if (UnityEngine.Event.current.type == EventType.KeyUp)
             {
-                if (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter)
+                if (UnityEngine.Event.current.keyCode == KeyCode.Return || UnityEngine.Event.current.keyCode == KeyCode.KeypadEnter)
                 {
                     string value = NamespacedKey.NormalizeStringForNamespacedKey(state.customValue.Trim(), false);
                     if (!string.IsNullOrEmpty(value))
@@ -85,15 +85,15 @@ public class NamespacedKeyDropdownDrawer : PropertyDrawer
                         state.addingNew = false;
                         state.customValue = "";
                         GUI.FocusControl(null);
-                        Event.current.Use();
+                        UnityEngine.Event.current.Use();
                     }
                 }
-                else if (Event.current.keyCode == KeyCode.Escape)
+                else if (UnityEngine.Event.current.keyCode == KeyCode.Escape)
                 {
                     state.addingNew = false;
                     state.customValue = "";
                     GUI.FocusControl(null);
-                    Event.current.Use();
+                    UnityEngine.Event.current.Use();
                 }
             }
 
