@@ -29,7 +29,10 @@
         <HintPath>$(UnityEditorPath)Editor\Data\Managed\UnityEngine\UnityEditor.CoreModule.dll</HintPath>
       </Reference>
       <PackageReference Include="UnityEngine.Modules" Version="2022.3.62" IncludeAssets="compile" PrivateAssets="all"/>
-        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="*-*" PrivateAssets="all" Publicize="true"/>
+      <PackageReference Include="LethalCompany.GameLibs.Steam" Version="*-*" PrivateAssets="all" Publicize="true"/>
+	  <PackageReference Include="Microsoft.Unity.Analyzers" Version="1.25.0" PrivateAssets="all">
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+	  </PackageReference>
         
     </ItemGroup>
     
