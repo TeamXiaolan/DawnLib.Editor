@@ -14,11 +14,15 @@ public class DawnSceneObjectReferenceData
     public List<Matrix4x4> cachedTransforms = new();
     public Color hologramColor;
     public Color wireframeColor;
+    public Material wireframeMaterial = null!;
+    public Material hologramMaterial = null!;
     public bool dataCollected;
 
     public void CollectData(DawnSceneObjectReference target)
     {
         dataCollected = false;
+        cachedMeshes.Clear();
+        cachedTransforms.Clear();
 
         GameObject go = FindObjectOnLoadedScenes(target);
         if (!go) return;
@@ -28,7 +32,28 @@ public class DawnSceneObjectReferenceData
         hologramColor = target.hologramColor;
         wireframeColor = target.wireframeColor;
 
+        GetMaterial();
+
         dataCollected = true;
+    }
+
+    void GetMaterial()
+    {
+        Shader shader = Shader.Find("Hidden/Internal-Colored");
+        if (shader == null) return;
+
+        hologramMaterial = new Material(shader);
+        hologramMaterial.hideFlags = HideFlags.HideAndDontSave;
+        hologramMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        hologramMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        hologramMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+        hologramMaterial.SetInt("_ZWrite", 0);
+        hologramMaterial.SetInt("_ZTest", (int)UnityEngine.Rendering.CompareFunction.Always);
+        hologramMaterial.color = hologramColor;
+
+        wireframeMaterial = new Material(shader);
+        wireframeMaterial.hideFlags = HideFlags.HideAndDontSave;
+        wireframeMaterial.color = wireframeColor;
     }
 
     /*
@@ -57,7 +82,7 @@ public class DawnSceneObjectReferenceData
 
             var roots = scene.GetRootGameObjects();
 
-            if (!string.IsNullOrEmpty(target.cachedObjectPath))
+            if (!string.IsNullOrEmpty(target.cachedObjectPath) && target.cachedObjectPath.Split('/')[^1] == target.sceneObjectReferenceSearch)
             {
                 var root = roots.FirstOrDefault(go => go.name == target.cachedObjectPath.Split('/')[0]);
                 int index = target.cachedObjectPath.IndexOf('/');
@@ -113,54 +138,120 @@ public class DawnSceneObjectReferenceData
 [CustomEditor(typeof(DawnSceneObjectReference))]
 public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
 {
-    public static DawnSceneObjectReference curentTarget = null!;
-    public static DawnSceneObjectReferenceData curentData = null!;
+    public DawnSceneObjectReference curentTarget = null!;
+    public DawnSceneObjectReferenceData curentData = null!;
+    private static bool initialized = false;
 
-    public static List<DawnSceneObjectReferenceData> visibleReferences = new();
+    public static Dictionary<DawnSceneObjectReference, DawnSceneObjectReferenceData> visibleReferences = new();
 
     void OnEnable()
     {
         curentTarget = (DawnSceneObjectReference)target;
-        curentData = new DawnSceneObjectReferenceData();
+        if (!visibleReferences.TryGetValue(curentTarget, out curentData))
+            curentData = new DawnSceneObjectReferenceData();
 
         curentData.CollectData(curentTarget);
 
-        if (curentTarget.keepVisible && curentData.dataCollected)
-            visibleReferences.Add(curentData);
+        if (curentTarget.keepVisible && curentData.dataCollected && !visibleReferences.ContainsKey(curentTarget))
+            visibleReferences.Add(curentTarget, curentData);
     }
 
     void OnDisable()
     {
-        visibleReferences.Clear();
+        if (curentTarget.keepVisible)
+        {
+            if (visibleReferences.ContainsKey(curentTarget)) return;
+            else visibleReferences.Add(curentTarget, curentData);
+        }
+        else
+        {
+            visibleReferences.Remove(curentTarget);
+            DestroyImmediate(curentData.hologramMaterial);
+            DestroyImmediate(curentData.wireframeMaterial);
+        }
     }
 
-    //TODO: fuck gizmos, switch to graphics
-    [DrawGizmo(GizmoType.Selected | GizmoType.NonSelected)]
-    static void DrawGizmo(DawnSceneObjectReference spawner, GizmoType gizmoType)
+    void OnSceneGUI()
     {
-        foreach (var reference in visibleReferences) DrawHologram(reference);
-        DrawHologram(curentData);
+        if (UnityEngine.Event.current.type != EventType.Repaint) return;
+        if (PrefabStageUtility.GetCurrentPrefabStage() == null) return;
+
+        if (!visibleReferences.ContainsKey(curentTarget)) DrawHologram(curentTarget, curentData);
+
+        //Debug.Log($"count = {visibleReferences.Count}");
+        //foreach (var data in visibleReferences)
+        //    DrawHologram(data.Key, data.Value);
     }
 
-    static void DrawHologram(DawnSceneObjectReferenceData data)
+    static void DrawHologram(DawnSceneObjectReference target, DawnSceneObjectReferenceData data)
     {
         if (data.cachedMeshes.Count == 0) return;
 
-        Gizmos.color = data.hologramColor;
-
         for (int i = 0; i < data.cachedMeshes.Count; i++)
         {
-            if (data.cachedMeshes[i] == null) continue;
+            if (data.cachedMeshes[i] == null || data.cachedTransforms[i] == null) continue;
 
-            Matrix4x4 worldMatrix = Matrix4x4.TRS(
-                curentTarget.transform.position,
-                curentTarget.transform.rotation,
-                curentTarget.transform.lossyScale
-            ) * data.cachedTransforms[i];
+            Matrix4x4 targetMatrix = target.transform.localToWorldMatrix;
 
-            Gizmos.matrix = worldMatrix;
-            Gizmos.DrawMesh(data.cachedMeshes[i], Vector3.zero, Quaternion.identity, Vector3.one);
+            Matrix4x4 worldMatrix = targetMatrix * data.cachedTransforms[i];
+
+            data.hologramMaterial.SetPass(0);
+            Graphics.DrawMeshNow(data.cachedMeshes[i], worldMatrix);
+
+            data.wireframeMaterial.SetPass(0);
+            GL.wireframe = true;
+            Graphics.DrawMeshNow(data.cachedMeshes[i], worldMatrix);
+            GL.wireframe = false;
         }
     }
-}
 
+    void OnValidate() => OnEnable();
+    public override void OnInspectorGUI()
+    {
+        serializedObject.Update();
+
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("sceneObjectReferenceSearch"));
+        EditorGUILayout.LabelField($"{curentTarget.cachedObjectPath}");
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("keepVisible"));
+
+        EditorGUILayout.Space();
+
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("hologramColor"));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("wireframeColor"));
+
+        EditorGUILayout.Space();
+
+        EditorGUILayout.LabelField($"Currently cached: {visibleReferences.Count}");
+
+        if (GUILayout.Button("Clear cache"))
+        {
+            foreach(var data in visibleReferences)
+            {
+                DestroyImmediate(data.Value.hologramMaterial);
+                DestroyImmediate(data.Value.wireframeMaterial);
+            }
+            visibleReferences.Clear();
+        }
+
+        serializedObject.ApplyModifiedProperties();
+    }
+
+    static void OnSceneGUIStatic(SceneView sceneView)
+    {
+        if (UnityEngine.Event.current.type != EventType.Repaint) return;
+        if (PrefabStageUtility.GetCurrentPrefabStage() == null) return;
+
+        foreach (var data in visibleReferences)
+            DrawHologram(data.Key, data.Value);
+    }
+
+    [InitializeOnLoadMethod]
+    static void Initialize()
+    {
+        if (initialized) return;
+
+        visibleReferences.Clear();
+        SceneView.duringSceneGui += OnSceneGUIStatic;
+        initialized = true;
+    }
+}
