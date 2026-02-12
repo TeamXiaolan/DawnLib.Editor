@@ -1,5 +1,4 @@
-﻿using Dawn.Editor.Extensions;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -75,33 +74,39 @@ public class DawnSceneObjectReferenceData
 
         Transform resultTransform = null!;
 
-        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount && !resultTransform; i++)
         {
             var scene = EditorSceneManager.GetSceneAt(i);
             if (!scene.isLoaded) continue;
 
             var roots = scene.GetRootGameObjects();
 
-            if (!string.IsNullOrEmpty(target.cachedObjectPath) && target.cachedObjectPath.Split('/')[^1] == target.sceneObjectReferenceSearch)
+            var root = roots.FirstOrDefault(go => go.name == target.sceneObjectReferenceSearch.Split('/')[0] || go.name.StartsWith(target.sceneObjectReferenceSearch.Split('/')[0]));
+            if (root)
             {
-                var root = roots.FirstOrDefault(go => go.name == target.cachedObjectPath.Split('/')[0]);
-                int index = target.cachedObjectPath.IndexOf('/');
-                resultTransform = root.transform.Find(target.cachedObjectPath.Substring(index + 1));
+                int index = target.sceneObjectReferenceSearch.IndexOf('/');
+                var fullPath = target.sceneObjectReferenceSearch.Substring(index + 1);
+                resultTransform = root.transform.Find(fullPath);
 
-
-                break;
-            }
-
-            string path = "";
-
-            foreach (var root in roots)
-            {
-                resultTransform = root.transform.FindPathRecursive(target.sceneObjectReferenceSearch, out path);
-                if (resultTransform)
+                if (!resultTransform)
                 {
-                    target.cachedObjectPath = path;
-                    break;
+                    var split = fullPath.Split('/');
+                    var posibleName = split[^1];
+                    var path = string.Join('/', split.Take(split.Length - 1));
+
+                    var parent = root.transform.Find(path);
+                    if (parent)
+                        foreach (Transform child in parent)
+                        {
+                            if (child.name.StartsWith(posibleName))
+                            {
+                                resultTransform = child;
+                                target.cachedObjectPath = path + "/" + child.name;
+                                break;
+                            }
+                        }
                 }
+                else target.cachedObjectPath = fullPath;
             }
         }
 
@@ -160,7 +165,7 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
     {
         if (curentTarget.keepVisible)
         {
-            if (visibleReferences.ContainsKey(curentTarget)) return;
+            if (visibleReferences.ContainsKey(curentTarget)) visibleReferences[curentTarget] = curentData;
             else visibleReferences.Add(curentTarget, curentData);
         }
         else
@@ -168,6 +173,8 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
             visibleReferences.Remove(curentTarget);
             DestroyImmediate(curentData.hologramMaterial);
             DestroyImmediate(curentData.wireframeMaterial);
+            curentData.cachedMeshes.Clear();
+            curentData.cachedTransforms.Clear();
         }
     }
 
@@ -205,13 +212,27 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
         }
     }
 
-    void OnValidate() => OnEnable();
+    void OnValidate()
+    {
+        //not sure if all of this inside if is needed but prob not gonna fuck up anything
+        if (curentData != null && curentData.dataCollected)
+        {
+            visibleReferences.Remove(curentTarget);
+            DestroyImmediate(curentData.hologramMaterial);
+            DestroyImmediate(curentData.wireframeMaterial);
+            curentData.cachedMeshes.Clear();
+            curentData.cachedTransforms.Clear();
+        }
+
+        OnEnable();
+    }
+
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
 
         EditorGUILayout.PropertyField(serializedObject.FindProperty("sceneObjectReferenceSearch"));
-        EditorGUILayout.LabelField($"{curentTarget.cachedObjectPath}");
+        EditorGUILayout.LabelField($"Selected object: {curentTarget.cachedObjectPath}");
         EditorGUILayout.PropertyField(serializedObject.FindProperty("keepVisible"));
 
         EditorGUILayout.Space();
@@ -225,15 +246,18 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
 
         if (GUILayout.Button("Clear cache"))
         {
-            foreach(var data in visibleReferences)
+            foreach (var data in visibleReferences)
             {
+                if (data.Key == curentTarget) continue;
                 DestroyImmediate(data.Value.hologramMaterial);
                 DestroyImmediate(data.Value.wireframeMaterial);
+                data.Value.cachedMeshes.Clear();
+                data.Value.cachedTransforms.Clear();
             }
             visibleReferences.Clear();
         }
 
-        serializedObject.ApplyModifiedProperties();
+        if (serializedObject.ApplyModifiedProperties()) OnValidate();
     }
 
     static void OnSceneGUIStatic(SceneView sceneView)
@@ -242,7 +266,10 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
         if (PrefabStageUtility.GetCurrentPrefabStage() == null) return;
 
         foreach (var data in visibleReferences)
+        {
+            if (data.Key == null || data.Value == null) continue;
             DrawHologram(data.Key, data.Value);
+        }
     }
 
     [InitializeOnLoadMethod]
@@ -250,7 +277,6 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
     {
         if (initialized) return;
 
-        visibleReferences.Clear();
         SceneView.duringSceneGui += OnSceneGUIStatic;
         initialized = true;
     }
