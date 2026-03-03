@@ -6,7 +6,7 @@ namespace Dawn.Editor.PropertyDrawers;
 [CustomPropertyDrawer(typeof(SpawnableItemWithRarity))]
 public class SpawnableItemWithRarityDrawer : PropertyDrawer
 {
-    static readonly Regex ArrayElementRegex = new Regex(@"\.Array\.data\[(\d+)\]");
+    internal static readonly Regex ArrayElementRegex = new Regex(@"\.Array\.data\[(\d+)\]");
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
@@ -40,7 +40,7 @@ public class SpawnableItemWithRarityDrawer : PropertyDrawer
         return EditorGUI.GetPropertyHeight(property, label, true);
     }
 
-    private static bool TryGetPercentShare(SerializedProperty elementProperty, out float percent, out int elementIndex, out int totalRarity)
+    internal static bool TryGetPercentShare(SerializedProperty elementProperty, out float percent, out int elementIndex, out int totalRarity)
     {
         percent = 0f;
         elementIndex = -1;
