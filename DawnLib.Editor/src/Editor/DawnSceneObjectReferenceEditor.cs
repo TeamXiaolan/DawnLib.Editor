@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.ProBuilder;
 
 namespace Dawn.Editor;
 
@@ -15,6 +16,7 @@ public class DawnSceneObjectReferenceData
     public Color wireframeColor;
     public Material wireframeMaterial = null!;
     public Material hologramMaterial = null!;
+    public GameObject targetGameObject = null!;
     public bool dataCollected;
 
     public void CollectData(DawnSceneObjectReference target)
@@ -26,6 +28,7 @@ public class DawnSceneObjectReferenceData
         GameObject go = FindObjectOnLoadedScenes(target);
         if (!go) return;
 
+        targetGameObject = go;
         CollectDataRecursive(go.transform, Matrix4x4.identity);
 
         hologramColor = target.hologramColor;
@@ -101,12 +104,12 @@ public class DawnSceneObjectReferenceData
                             if (child.name.StartsWith(posibleName))
                             {
                                 resultTransform = child;
-                                target.cachedObjectPath = path + "/" + child.name;
+                                target.cachedObjectPath = root.name + "/" + path + "/" + child.name;
                                 break;
                             }
                         }
                 }
-                else target.cachedObjectPath = fullPath;
+                else target.cachedObjectPath = root.name + "/" + fullPath;
             }
         }
 
@@ -198,16 +201,19 @@ public class DawnSceneObjectReferenceEditor : UnityEditor.Editor
         {
             if (data.cachedMeshes[i] == null || data.cachedTransforms[i] == null) continue;
 
-            Matrix4x4 targetMatrix = target.transform.localToWorldMatrix;
+            Matrix4x4 prefabRootInverse = data.targetGameObject.transform.worldToLocalMatrix;
+            Matrix4x4 prefabRootScale = Matrix4x4.Scale(data.cachedTransforms[i].GetLossyScale());
+            Matrix4x4 spawnerWorld = target.transform.localToWorldMatrix;
 
-            Matrix4x4 worldMatrix = targetMatrix * data.cachedTransforms[i];
+            Matrix4x4 childToPrefabRoot = prefabRootInverse * data.targetGameObject.transform.localToWorldMatrix;
+            Matrix4x4 matrix = spawnerWorld * prefabRootScale * childToPrefabRoot;
 
             data.hologramMaterial.SetPass(0);
-            Graphics.DrawMeshNow(data.cachedMeshes[i], worldMatrix);
+            Graphics.DrawMeshNow(data.cachedMeshes[i], matrix);
 
             data.wireframeMaterial.SetPass(0);
             GL.wireframe = true;
-            Graphics.DrawMeshNow(data.cachedMeshes[i], worldMatrix);
+            Graphics.DrawMeshNow(data.cachedMeshes[i], matrix);
             GL.wireframe = false;
         }
     }
