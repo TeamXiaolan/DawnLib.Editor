@@ -1,5 +1,5 @@
 bin/
 obj/
 Packages/
-DawnLib.Editor/deps/*
+DawnLib.Editor/deps/*/**
 *.user

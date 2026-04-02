@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 using Dawn.Editor.Extensions;
 using Dusk;
+using Dusk.Weights;
 
 namespace Dawn.Editor.PropertyDrawers;
 [CustomPropertyDrawer(typeof(NamespacedConfigWeight))]
