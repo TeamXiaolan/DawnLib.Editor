@@ -96,10 +96,15 @@ public class DuskEnemyDefinitionEditor : UnityEditor.Editor
 
                 if (!moonNamespacedKeyExists)
                 {
+                    MathOperation mathOperation = MathOperation.Additive;
+                    if (namespacedKey.Key == $"{modKey}_none")
+                    {
+                        mathOperation = MathOperation.Multiplicative;
+                    }
                     NamespacedConfigWeight namespacedConfigWeight = new()
                     {
                         NamespacedKey = namespacedKey,
-                        MathOperation = MathOperation.Additive,
+                        MathOperation = mathOperation,
                         Weight = 0f
                     };
                     enemyDefinition.MoonSpawnWeightsConfig.Add(namespacedConfigWeight);
@@ -120,10 +125,15 @@ public class DuskEnemyDefinitionEditor : UnityEditor.Editor
 
                 if (!interiorNamespacedKeyExists)
                 {
+                    MathOperation mathOperation = MathOperation.Additive;
+                    if (namespacedKey.Key == $"{modKey}_none")
+                    {
+                        mathOperation = MathOperation.Multiplicative;
+                    }
                     NamespacedConfigWeight namespacedConfigWeight = new()
                     {
                         NamespacedKey = namespacedKey,
-                        MathOperation = MathOperation.Additive,
+                        MathOperation = mathOperation,
                         Weight = 0f
                     };
                     enemyDefinition.InteriorSpawnWeightsConfig.Add(namespacedConfigWeight);
@@ -144,17 +154,23 @@ public class DuskEnemyDefinitionEditor : UnityEditor.Editor
 
                 if (!weatherNamespacedKeyExists)
                 {
+                    float weight = 1f;
+                    if (namespacedKey.Key == $"{modKey}_none")
+                    {
+                        weight = 0f;
+                    }
                     NamespacedConfigWeight namespacedConfigWeight = new()
                     {
                         NamespacedKey = namespacedKey,
                         MathOperation = MathOperation.Multiplicative,
-                        Weight = 1f
+                        Weight = weight
                     };
                     enemyDefinition.WeatherSpawnWeightsConfig.Add(namespacedConfigWeight);
                 }
             }
 
-            EditorUtility.SetDirty(target);
+            Undo.RecordObject(enemyDefinition, "Generate Default Empty Weights");
+            EditorUtility.SetDirty(enemyDefinition);
 		}
 	}
 }

@@ -162,6 +162,7 @@ public class DuskMapObjectDefinitionEditor : UnityEditor.Editor
                 }
             }
 
+            Undo.RecordObject(mapObjectDefinition, "Update Spawn Weights");
             EditorUtility.SetDirty(mapObjectDefinition);
 		}
 	}
