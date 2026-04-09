@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.EditorWindows;
+
 public class DuskContentConverter : EditorWindow
 {
     private string modName = string.Empty;

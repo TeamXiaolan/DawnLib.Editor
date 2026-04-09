@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using UnityEngine.ProBuilder;
 
 namespace Dawn.Editor;
+
 [InitializeOnLoad]
 public static class SpawnSyncedPrefabCache
 {

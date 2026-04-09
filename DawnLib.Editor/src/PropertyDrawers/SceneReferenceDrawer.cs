@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(SceneReference))]
 public class SceneReferenceDrawer : PropertyDrawer
 {
@@ -11,8 +12,8 @@ public class SceneReferenceDrawer : PropertyDrawer
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        SerializedProperty scenePathProp  = property.FindPropertyRelative("_scenePath");
-        SerializedProperty assetGuidProp  = property.FindPropertyRelative("_assetGUID");
+        SerializedProperty scenePathProp = property.FindPropertyRelative("_scenePath");
+        SerializedProperty assetGuidProp = property.FindPropertyRelative("_assetGUID");
         SerializedProperty bundleNameProp = property.FindPropertyRelative("_bundleName");
 
         property.serializedObject.Update();
@@ -67,8 +68,8 @@ public class SceneReferenceDrawer : PropertyDrawer
                 var importer = AssetImporter.GetAtPath(path);
                 string bundle = importer != null ? importer.assetBundleName ?? string.Empty : string.Empty;
 
-                scenePathProp.stringValue  = path;
-                assetGuidProp.stringValue  = guid;
+                scenePathProp.stringValue = path;
+                assetGuidProp.stringValue = guid;
                 bundleNameProp.stringValue = bundle;
 
                 SceneReferencesDict[path] = pickedSceneAsset;
@@ -79,8 +80,8 @@ public class SceneReferenceDrawer : PropertyDrawer
                 if (!string.IsNullOrEmpty(scenePathProp.stringValue))
                     SceneReferencesDict.Remove(scenePathProp.stringValue);
 
-                scenePathProp.stringValue  = string.Empty;
-                assetGuidProp.stringValue  = string.Empty;
+                scenePathProp.stringValue = string.Empty;
+                assetGuidProp.stringValue = string.Empty;
                 bundleNameProp.stringValue = string.Empty;
                 propsChanged = true;
             }

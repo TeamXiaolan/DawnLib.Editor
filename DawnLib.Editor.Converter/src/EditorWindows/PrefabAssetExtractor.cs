@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor;
+
 public static class PrefabAssetExtractor
 {
     public static void ExtractPrefabAssets(GameObject prefab, string folderPath)

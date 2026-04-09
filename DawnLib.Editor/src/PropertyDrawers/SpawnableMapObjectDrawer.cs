@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(SpawnableMapObject))]
 public class SpawnableMapObjectDrawer : PropertyDrawer
 {

@@ -3,6 +3,7 @@ using UnityEngine;
 using Dusk;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(DontDrawIfEmpty))]
 public class DontDrawIfEmptyDrawer : PropertyDrawer
 {

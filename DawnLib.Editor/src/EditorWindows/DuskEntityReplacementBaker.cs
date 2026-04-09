@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.EditorWindows;
+
 public class DuskEntityReplacementBaker : EditorWindow
 {
     private UnityEngine.Object? source;
@@ -379,7 +380,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine("        public AudioClip? ExperimentalAudioClip3 = null;");
             sb.AppendLine("        public AudioClip[] ExperimentalRandomClips  = System.Array.Empty<AudioClip>();");
             sb.AppendLine("        public AudioClip[] ExperimentalRandomClips2 = System.Array.Empty<AudioClip>();");
-            sb.AppendLine("        public ParticleSystem? ExperimentalParticle = null;");            
+            sb.AppendLine("        public ParticleSystem? ExperimentalParticle = null;");
         }
 
         sb.AppendLine();
@@ -538,7 +539,7 @@ $@"<Project Sdk=""Microsoft.NET.Sdk"">
             sb.AppendLine("                        playAudioAnimationEvent.particle = newGameObject.GetComponent<ParticleSystem>();");
             sb.AppendLine("                    }");
             sb.AppendLine("                }");
-            sb.AppendLine("            }");            
+            sb.AppendLine("            }");
         }
 
         sb.AppendLine("        }");

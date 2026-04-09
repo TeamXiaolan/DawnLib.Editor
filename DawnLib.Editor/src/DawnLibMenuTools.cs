@@ -10,8 +10,6 @@ public static class DawnMenuTools
     [MenuItem("DawnLib/Blank SO's")]
     private static void CreateAllBlankSOs()
     {
-        AssetDatabase.DeleteAssets(AssetDatabase.GetAllAssetPaths().Where(x => x.Contains("BlankSOs/") && x.Contains(".asset")).ToArray(), new());
-
         // Create a folder in Assets
         string folderPath = "Assets/DawnLib/BlankSOs";
         if (!AssetDatabase.IsValidFolder("Assets/DawnLib"))
@@ -61,6 +59,7 @@ public static class DawnMenuTools
         LevelAmbienceLibrary[] levelAmbienceLibraries = ContentContainerEditor.FindAssetsByType<LevelAmbienceLibrary>().Where(x => AssetDatabase.GetAssetPath(x).Contains("Game")).ToArray();
         ReverbPreset[] reverbPresets = ContentContainerEditor.FindAssetsByType<ReverbPreset>().Where(x => AssetDatabase.GetAssetPath(x).Contains("Game")).ToArray();
 
+        AssetDatabase.DeleteAssets(AssetDatabase.GetAllAssetPaths().Where(x => x.Contains("BlankSOs/") && x.Contains(".asset")).ToArray(), new());
         foreach (Item item in items)
         {
             string itemFolder = $"{folderPath}/Items/{item.name}.asset";

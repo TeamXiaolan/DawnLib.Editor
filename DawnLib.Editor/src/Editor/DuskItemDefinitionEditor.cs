@@ -9,13 +9,13 @@ namespace Dawn.Editor;
 [CustomEditor(typeof(DuskItemDefinition))]
 public class DuskItemDefinitionEditor : UnityEditor.Editor
 {
-	public override void OnInspectorGUI()
-	{
-		base.OnInspectorGUI();
-		DuskItemDefinition itemDefinition = (DuskItemDefinition)target;
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+        DuskItemDefinition itemDefinition = (DuskItemDefinition)target;
 
-		if (GUILayout.Button("Generate Default Empty Weights"))
-		{
+        if (GUILayout.Button("Generate Default Empty Weights"))
+        {
             string? modNamespace = itemDefinition.Key.Namespace;
             if (string.IsNullOrEmpty(modNamespace))
             {
@@ -171,6 +171,6 @@ public class DuskItemDefinitionEditor : UnityEditor.Editor
 
             Undo.RecordObject(itemDefinition, "Generate Default Empty Weights");
             EditorUtility.SetDirty(itemDefinition);
-		}
-	}
+        }
+    }
 }

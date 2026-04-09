@@ -313,8 +313,8 @@ public static class EditorJsonStringList
         if (!list.Contains(value))
         {
             list.Add(value);
-			string text = JsonConvert.SerializeObject(list, Formatting.Indented);
-			File.WriteAllText(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json"), text);
+            string text = JsonConvert.SerializeObject(list, Formatting.Indented);
+            File.WriteAllText(Path.Combine(Application.dataPath, "dawn_lib_namespaces.json"), text);
         }
     }
 

@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(IntWithRarity))]
 public class IntWithRarityDrawer : PropertyDrawer
 {

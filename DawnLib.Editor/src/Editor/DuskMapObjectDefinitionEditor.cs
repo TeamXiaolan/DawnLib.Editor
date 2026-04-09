@@ -8,13 +8,13 @@ namespace Dawn.Editor;
 [CustomEditor(typeof(DuskMapObjectDefinition))]
 public class DuskMapObjectDefinitionEditor : UnityEditor.Editor
 {
-	public override void OnInspectorGUI()
-	{
-		base.OnInspectorGUI();
-		DuskMapObjectDefinition mapObjectDefinition = (DuskMapObjectDefinition)target;
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+        DuskMapObjectDefinition mapObjectDefinition = (DuskMapObjectDefinition)target;
 
-		if (GUILayout.Button("Generate Default Empty Weights"))
-		{
+        if (GUILayout.Button("Generate Default Empty Weights"))
+        {
             string? modNamespace = mapObjectDefinition.Key.Namespace;
             if (string.IsNullOrEmpty(modNamespace))
             {
@@ -164,6 +164,6 @@ public class DuskMapObjectDefinitionEditor : UnityEditor.Editor
 
             Undo.RecordObject(mapObjectDefinition, "Update Spawn Weights");
             EditorUtility.SetDirty(mapObjectDefinition);
-		}
-	}
+        }
+    }
 }

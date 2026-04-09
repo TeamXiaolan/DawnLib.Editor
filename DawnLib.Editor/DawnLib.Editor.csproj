@@ -15,8 +15,8 @@
     
     <ItemGroup>
       <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
-      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.9.2" PrivateAssets="all" Publicize="true" />
-      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="0.9.2" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib" Version="0.9.3" PrivateAssets="all" Publicize="true" />
+      <PackageReference Include="TeamXiaolan.DawnLib.DuskMod" Version="0.9.3" PrivateAssets="all" Publicize="true" />
       <PackageReference Include="LethalCompany.GameLibs.Steam" Version="81.0.0-ngd.0" PrivateAssets="all" Publicize="true"/>
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <Reference Include="UnityEditor" PrivateAssets="all">

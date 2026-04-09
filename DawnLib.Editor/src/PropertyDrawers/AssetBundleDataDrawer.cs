@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(AssetBundleData), true)]
 public class AssetBundleDataDrawer : PropertyDrawer
 {

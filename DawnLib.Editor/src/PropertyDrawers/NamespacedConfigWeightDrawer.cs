@@ -5,6 +5,7 @@ using Dusk;
 using Dusk.Weights;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(NamespacedConfigWeight))]
 public class NamespacedConfigWeightDrawer : PropertyDrawer
 {

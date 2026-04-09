@@ -2,6 +2,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(SpawnableEnemyWithRarity))]
 public class SpawnableEnemyWithRarityDrawer : PropertyDrawer
 {

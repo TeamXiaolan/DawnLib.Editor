@@ -37,7 +37,7 @@ public class TextPromptWindow : EditorWindow
         window.input = defaultText;
         window.onClose = onClose;
         window.titleContent = new GUIContent($"Input Required");
-        window.position = new Rect(Screen.width / 2, Screen.height/ 2, 300, 100);
+        window.position = new Rect(Screen.width / 2, Screen.height / 2, 300, 100);
         window.ShowUtility();
     }
 }

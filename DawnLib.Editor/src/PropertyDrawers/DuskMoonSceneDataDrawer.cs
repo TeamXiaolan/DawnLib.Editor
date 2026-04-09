@@ -4,6 +4,7 @@ using Dawn.Editor.Extensions;
 using Dusk;
 
 namespace Dawn.Editor.PropertyDrawers;
+
 [CustomPropertyDrawer(typeof(DuskMoonSceneData))]
 public class DuskMoonSceneDataDrawer : PropertyDrawer
 {

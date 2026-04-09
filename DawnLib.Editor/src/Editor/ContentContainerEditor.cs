@@ -18,246 +18,246 @@ namespace Dawn.Editor;
 [CustomEditor(typeof(ContentContainer))]
 public class ContentContainerEditor : UnityEditor.Editor
 {
-	private static ContentContainer? _contentContainer = null;
-	private static ContentContainer? ContentContainer
-	{
-		get
-		{
-			if (_contentContainer == null)
-			{
-				_contentContainer = FindAssetsByType<ContentContainer>().FirstOrDefault();
-			}
+    private static ContentContainer? _contentContainer = null;
+    private static ContentContainer? ContentContainer
+    {
+        get
+        {
+            if (_contentContainer == null)
+            {
+                _contentContainer = FindAssetsByType<ContentContainer>().FirstOrDefault();
+            }
 
-			return _contentContainer;
-		}
-	}
+            return _contentContainer;
+        }
+    }
 
-	private static string ClassNameFromNamespace(string ns, string suffix)
-	{
-		var words = ns.Split('_');
-		for (int i = 0; i < words.Length; i++)
-			words[i] = words[i].Trim().ToCapitalized();
+    private static string ClassNameFromNamespace(string ns, string suffix)
+    {
+        var words = ns.Split('_');
+        for (int i = 0; i < words.Length; i++)
+            words[i] = words[i].Trim().ToCapitalized();
 
-		return string.Join("", words) + suffix;
-	}
+        return string.Join("", words) + suffix;
+    }
 
-	public override void OnInspectorGUI()
-	{
-		EditorGUILayout.LabelField("[TIP] Hover over a red field to get more information about what's wrong.");
-		base.OnInspectorGUI();
-		_contentContainer = (ContentContainer)target;
+    public override void OnInspectorGUI()
+    {
+        EditorGUILayout.LabelField("[TIP] Hover over a red field to get more information about what's wrong.");
+        base.OnInspectorGUI();
+        _contentContainer = (ContentContainer)target;
 
-		if (GUILayout.Button("Generate 'namespaced_keys.json'"))
-		{
-			List<DuskEnemyDefinition> enemies = FindAssetsByType<DuskEnemyDefinition>().ToList();
-			List<DuskWeatherDefinition> weathers = FindAssetsByType<DuskWeatherDefinition>().ToList();
-			List<DuskUnlockableDefinition> unlockables = FindAssetsByType<DuskUnlockableDefinition>().ToList();
-			List<DuskItemDefinition> items = FindAssetsByType<DuskItemDefinition>().ToList();
-			List<DuskMapObjectDefinition> mapObjects = FindAssetsByType<DuskMapObjectDefinition>().ToList();
-			List<DuskAchievementDefinition> achievements = FindAssetsByType<DuskAchievementDefinition>().ToList();
-			List<DuskAdditionalTilesDefinition> additionalTiles = FindAssetsByType<DuskAdditionalTilesDefinition>().ToList();
-			List<DuskVehicleDefinition> vehicles = FindAssetsByType<DuskVehicleDefinition>().ToList();
-			List<DuskEntityReplacementDefinition> entityReplacements = FindAssetsByType<DuskEntityReplacementDefinition>().ToList();
-			List<DuskMoonDefinition> moons = FindAssetsByType<DuskMoonDefinition>().ToList();
-			List<DuskDungeonDefinition> dungeons = FindAssetsByType<DuskDungeonDefinition>().ToList();
+        if (GUILayout.Button("Generate 'namespaced_keys.json'"))
+        {
+            List<DuskEnemyDefinition> enemies = FindAssetsByType<DuskEnemyDefinition>().ToList();
+            List<DuskWeatherDefinition> weathers = FindAssetsByType<DuskWeatherDefinition>().ToList();
+            List<DuskUnlockableDefinition> unlockables = FindAssetsByType<DuskUnlockableDefinition>().ToList();
+            List<DuskItemDefinition> items = FindAssetsByType<DuskItemDefinition>().ToList();
+            List<DuskMapObjectDefinition> mapObjects = FindAssetsByType<DuskMapObjectDefinition>().ToList();
+            List<DuskAchievementDefinition> achievements = FindAssetsByType<DuskAchievementDefinition>().ToList();
+            List<DuskAdditionalTilesDefinition> additionalTiles = FindAssetsByType<DuskAdditionalTilesDefinition>().ToList();
+            List<DuskVehicleDefinition> vehicles = FindAssetsByType<DuskVehicleDefinition>().ToList();
+            List<DuskEntityReplacementDefinition> entityReplacements = FindAssetsByType<DuskEntityReplacementDefinition>().ToList();
+            List<DuskMoonDefinition> moons = FindAssetsByType<DuskMoonDefinition>().ToList();
+            List<DuskDungeonDefinition> dungeons = FindAssetsByType<DuskDungeonDefinition>().ToList();
 
-			// className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
-			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
+            // className -> { "__type": "...", <CSharpName>:<NamespacedKey> }
+            Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			void Build<TDef>(IEnumerable<TDef> defs, string suffix, string typeTag, Func<TDef, string> getEntityName, Func<TDef, NamespacedKey> getKey) where TDef : DuskContentDefinition
-			{
-				foreach (TDef def in defs)
-				{
-					Debug.Log($"Checking definition: {def.name}");
+            void Build<TDef>(IEnumerable<TDef> defs, string suffix, string typeTag, Func<TDef, string> getEntityName, Func<TDef, NamespacedKey> getKey) where TDef : DuskContentDefinition
+            {
+                foreach (TDef def in defs)
+                {
+                    Debug.Log($"Checking definition: {def.name}");
 
-					string className = ClassNameFromNamespace(getKey(def).Namespace, suffix);
-					if (!definitionsDict.TryGetValue(className, out var bucket))
-						definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
+                    string className = ClassNameFromNamespace(getKey(def).Namespace, suffix);
+                    if (!definitionsDict.TryGetValue(className, out var bucket))
+                        definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
-					string csharpName = NamespacedKey.NormalizeStringForNamespacedKey(getEntityName(def), true);
-					string nsKey = getKey(def).ToString();
+                    string csharpName = NamespacedKey.NormalizeStringForNamespacedKey(getEntityName(def), true);
+                    string nsKey = getKey(def).ToString();
 
-					bucket[csharpName] = nsKey;
+                    bucket[csharpName] = nsKey;
 
-					Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
-				}
-			}
+                    Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
+                }
+            }
 
-			Build(enemies, "EnemyKeys", "DawnEnemyInfo", d => d.EntityNameReference, d => d.Key);
-			Build(weathers, "WeatherKeys", "DawnWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
-			Build(unlockables, "UnlockableItemKeys", "DawnUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
-			Build(items, "ItemKeys", "DawnItemInfo", d => d.EntityNameReference, d => d.Key);
-			Build(mapObjects, "MapObjectKeys", "DawnMapObjectInfo", d => d.EntityNameReference, d => d.Key);
-			Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
-			Build(achievements, "AchievementKeys", "Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
-			Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
-			Build(entityReplacements, "EntityReplacementKeys", "Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
-			Build(moons, "MoonKeys", "DawnMoonInfo", d => d.EntityNameReference, d => d.Key);
-			Build(dungeons, "DungeonKeys", "DawnDungeonInfo", d => d.EntityNameReference, d => d.Key);
+            Build(enemies, "EnemyKeys", "DawnEnemyInfo", d => d.EntityNameReference, d => d.Key);
+            Build(weathers, "WeatherKeys", "DawnWeatherEffectInfo", d => d.EntityNameReference, d => d.Key);
+            Build(unlockables, "UnlockableItemKeys", "DawnUnlockableItemInfo", d => d.EntityNameReference, d => d.Key);
+            Build(items, "ItemKeys", "DawnItemInfo", d => d.EntityNameReference, d => d.Key);
+            Build(mapObjects, "MapObjectKeys", "DawnMapObjectInfo", d => d.EntityNameReference, d => d.Key);
+            Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
+            Build(achievements, "AchievementKeys", "Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
+            Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
+            Build(entityReplacements, "EntityReplacementKeys", "Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
+            Build(moons, "MoonKeys", "DawnMoonInfo", d => d.EntityNameReference, d => d.Key);
+            Build(dungeons, "DungeonKeys", "DawnDungeonInfo", d => d.EntityNameReference, d => d.Key);
 
-			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
-			string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
-			File.WriteAllText(outputPath, text);
-		}
+            string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
+            string outputPath = EditorUtility.SaveFilePanel("NamespacedKeys", Application.dataPath, "namespaced_keys", "json");
+            File.WriteAllText(outputPath, text);
+        }
 
-		if (GUILayout.Button("Generate 'vanilla_namespaced_keys.json' (Debug)"))
-		{
-			List<DungeonFlow> dungeons = FindAssetsByType<DungeonFlow>().ToList();
-			List<TileSet> tilesets = FindAssetsByType<TileSet>().ToList();
-			List<DungeonArchetype> archetypes = FindAssetsByType<DungeonArchetype>().ToList();
-			List<SelectableLevel> levels = FindAssetsByType<SelectableLevel>().ToList();
-			List<EnemyType> enemies = FindAssetsByType<EnemyType>().ToList();
-			UnlockablesList unlockablesList = FindAssetsByType<UnlockablesList>().ToList().First();
-			List<Item> items = FindAssetsByType<Item>().ToList();
-			List<TerminalNode> storyLogs = FindAssetsByType<TerminalNode>().Where(n => n.storyLogFileID > -1).ToList();
-			List<GameObject> mapObjects = levels.SelectMany(level => level.spawnableMapObjects.Select(m => m.prefabToSpawn).Concat(level.spawnableOutsideObjects.Select(o => o.spawnableObject.prefabToSpawn))).Distinct().ToList();
+        if (GUILayout.Button("Generate 'vanilla_namespaced_keys.json' (Debug)"))
+        {
+            List<DungeonFlow> dungeons = FindAssetsByType<DungeonFlow>().ToList();
+            List<TileSet> tilesets = FindAssetsByType<TileSet>().ToList();
+            List<DungeonArchetype> archetypes = FindAssetsByType<DungeonArchetype>().ToList();
+            List<SelectableLevel> levels = FindAssetsByType<SelectableLevel>().ToList();
+            List<EnemyType> enemies = FindAssetsByType<EnemyType>().ToList();
+            UnlockablesList unlockablesList = FindAssetsByType<UnlockablesList>().ToList().First();
+            List<Item> items = FindAssetsByType<Item>().ToList();
+            List<TerminalNode> storyLogs = FindAssetsByType<TerminalNode>().Where(n => n.storyLogFileID > -1).ToList();
+            List<GameObject> mapObjects = levels.SelectMany(level => level.spawnableMapObjects.Select(m => m.prefabToSpawn).Concat(level.spawnableOutsideObjects.Select(o => o.spawnableObject.prefabToSpawn))).Distinct().ToList();
 
-			Dictionary<string, Dictionary<string, string>> definitionsDict = new();
+            Dictionary<string, Dictionary<string, string>> definitionsDict = new();
 
-			void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?>? assetSelector = null, bool bypassCheck = false)
-			{
-				if (!definitionsDict.TryGetValue(className, out var bucket))
-					definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
+            void BuildVanilla<T>(IEnumerable<T> src, string className, string typeTag, Func<T, string> nameGetter, Func<T, Object?>? assetSelector = null, bool bypassCheck = false)
+            {
+                if (!definitionsDict.TryGetValue(className, out var bucket))
+                    definitionsDict[className] = bucket = new Dictionary<string, string> { { "__type", typeTag } };
 
-				foreach (var it in src)
-				{
-					Object? asset = null;
+                foreach (var it in src)
+                {
+                    Object? asset = null;
 
-					if (assetSelector != null)
-					{
-						asset = assetSelector(it);
-					}
-					else if (it is Object unityObj)
-					{
-						asset = unityObj;
-					}
+                    if (assetSelector != null)
+                    {
+                        asset = assetSelector(it);
+                    }
+                    else if (it is Object unityObj)
+                    {
+                        asset = unityObj;
+                    }
 
-					if (asset == null && !bypassCheck)
-						continue;
+                    if (asset == null && !bypassCheck)
+                        continue;
 
-					if (!bypassCheck)
-					{
-						string assetPath = AssetDatabase.GetAssetPath(asset);
-						if (string.IsNullOrEmpty(assetPath) || !assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
-							continue;
-					}
+                    if (!bypassCheck)
+                    {
+                        string assetPath = AssetDatabase.GetAssetPath(asset);
+                        if (string.IsNullOrEmpty(assetPath) || !assetPath.Contains("/Game/", StringComparison.InvariantCultureIgnoreCase))
+                            continue;
+                    }
 
-					string displayName = nameGetter(it);
-					Debug.Log($"Checking {className.Replace("Keys", "")}: {displayName}");
+                    string displayName = nameGetter(it);
+                    Debug.Log($"Checking {className.Replace("Keys", "")}: {displayName}");
 
-					string csharpName = string.Empty;
-					if (it is TileSet tileSet)
-					{
-						csharpName = DungeonRegistrationHandler.FormatTileSetName(tileSet);
-					}
-					else if (it is DungeonArchetype dungeonArchetype)
-					{
-						csharpName = DungeonRegistrationHandler.FormatArchetypeName(dungeonArchetype);
-					}
-					else if (it is DungeonFlow dungeonFlow)
-					{
-						csharpName = DungeonRegistrationHandler.FormatFlowName(dungeonFlow);
-					}
-					else
-					{
-						csharpName = NamespacedKey.NormalizeStringForNamespacedKey(displayName, true);
-					}
+                    string csharpName = string.Empty;
+                    if (it is TileSet tileSet)
+                    {
+                        csharpName = DungeonRegistrationHandler.FormatTileSetName(tileSet);
+                    }
+                    else if (it is DungeonArchetype dungeonArchetype)
+                    {
+                        csharpName = DungeonRegistrationHandler.FormatArchetypeName(dungeonArchetype);
+                    }
+                    else if (it is DungeonFlow dungeonFlow)
+                    {
+                        csharpName = DungeonRegistrationHandler.FormatFlowName(dungeonFlow);
+                    }
+                    else
+                    {
+                        csharpName = NamespacedKey.NormalizeStringForNamespacedKey(displayName, true);
+                    }
 
-					if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
-						continue;
+                    if (string.IsNullOrEmpty(displayName) || string.IsNullOrEmpty(csharpName))
+                        continue;
 
-					string nsKey = "lethal_company:" + NamespacedKey.NormalizeStringForNamespacedKey(displayName, false);
+                    string nsKey = "lethal_company:" + NamespacedKey.NormalizeStringForNamespacedKey(displayName, false);
 
-					bucket[csharpName] = nsKey;
+                    bucket[csharpName] = nsKey;
 
-					Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
-				}
-			}
+                    Debug.Log($"It has className: {className}, with C# name: {csharpName}, with NamespacedKey: {nsKey}");
+                }
+            }
 
-			BuildVanilla(enemies, "EnemyKeys", "DawnEnemyInfo",
-				enemyType => enemyType.enemyName,
-				obj => obj);
+            BuildVanilla(enemies, "EnemyKeys", "DawnEnemyInfo",
+                enemyType => enemyType.enemyName,
+                obj => obj);
 
-			BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "DawnUnlockableItemInfo",
-				u => u.unlockableName,
-				obj => unlockablesList);
+            BuildVanilla(unlockablesList.unlockables, "UnlockableItemKeys", "DawnUnlockableItemInfo",
+                u => u.unlockableName,
+                obj => unlockablesList);
 
-			BuildVanilla(items, "ItemKeys", "DawnItemInfo",
-				item => item.itemName,
-				obj => obj);
+            BuildVanilla(items, "ItemKeys", "DawnItemInfo",
+                item => item.itemName,
+                obj => obj);
 
-			BuildVanilla(levels, "MoonKeys", "DawnMoonInfo",
-				l => l.PlanetName,
-				obj => obj);
+            BuildVanilla(levels, "MoonKeys", "DawnMoonInfo",
+                l => l.PlanetName,
+                obj => obj);
 
-			BuildVanilla(dungeons, "DungeonKeys", "DawnDungeonInfo",
-				d => d.name,
-				obj => obj);
+            BuildVanilla(dungeons, "DungeonKeys", "DawnDungeonInfo",
+                d => d.name,
+                obj => obj);
 
-			BuildVanilla(tilesets, "DungeonTileSetKeys", "DawnTileSetInfo",
-				t => t.name,
-				obj => obj);
+            BuildVanilla(tilesets, "DungeonTileSetKeys", "DawnTileSetInfo",
+                t => t.name,
+                obj => obj);
 
-			BuildVanilla(archetypes, "DungeonArchetypeKeys", "DawnArchetypeInfo",
-				a => a.name,
-				obj => obj);
+            BuildVanilla(archetypes, "DungeonArchetypeKeys", "DawnArchetypeInfo",
+                a => a.name,
+                obj => obj);
 
-			BuildVanilla(mapObjects, "MapObjectKeys", "DawnMapObjectInfo",
-				m => m.name,
-				obj => obj);
+            BuildVanilla(mapObjects, "MapObjectKeys", "DawnMapObjectInfo",
+                m => m.name,
+                obj => obj);
 
-			List<WeatherEffect> weathers = LoadSampleSceneRelayTimeOfDay().effects.ToList();
+            List<WeatherEffect> weathers = LoadSampleSceneRelayTimeOfDay().effects.ToList();
 
-			BuildVanilla(weathers, "WeatherKeys", "DawnWeatherEffectInfo",
-				w => w.name,
-				obj => null,
-				true);
+            BuildVanilla(weathers, "WeatherKeys", "DawnWeatherEffectInfo",
+                w => w.name,
+                obj => null,
+                true);
 
-			BuildVanilla(storyLogs, "StoryLogKeys", "DawnStoryLogInfo",
-				sl => sl.creatureName,
-				obj => obj);
+            BuildVanilla(storyLogs, "StoryLogKeys", "DawnStoryLogInfo",
+                sl => sl.creatureName,
+                obj => obj);
 
-			string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
-			string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla.namespaced_keys", "json");
-			File.WriteAllText(outputPath, text);
-		}
-	}
+            string text = JsonConvert.SerializeObject(definitionsDict, Formatting.Indented);
+            string outputPath = EditorUtility.SaveFilePanel("VanillaNamespacedKeys", Application.dataPath, "vanilla.namespaced_keys", "json");
+            File.WriteAllText(outputPath, text);
+        }
+    }
 
-	private TimeOfDay LoadSampleSceneRelayTimeOfDay()
-	{
-		SceneSetup[] setup = EditorSceneManager.GetSceneManagerSetup();
+    private TimeOfDay LoadSampleSceneRelayTimeOfDay()
+    {
+        SceneSetup[] setup = EditorSceneManager.GetSceneManagerSetup();
 
-		Scene scene = EditorSceneManager.OpenScene("Assets/LethalCompany/Game/Scenes/SampleSceneRelay.unity", OpenSceneMode.Additive);
+        Scene scene = EditorSceneManager.OpenScene("Assets/LethalCompany/Game/Scenes/SampleSceneRelay.unity", OpenSceneMode.Additive);
 
-		TimeOfDay timeOfDay = scene.GetRootGameObjects()
-			.SelectMany(go => go.GetComponentsInChildren<TimeOfDay>(true))
-			.First();
+        TimeOfDay timeOfDay = scene.GetRootGameObjects()
+            .SelectMany(go => go.GetComponentsInChildren<TimeOfDay>(true))
+            .First();
 
-		EditorSceneManager.CloseScene(scene, true);
-		if (setup != null && setup.Length > 0)
-			EditorSceneManager.RestoreSceneManagerSetup(setup);
+        EditorSceneManager.CloseScene(scene, true);
+        if (setup != null && setup.Length > 0)
+            EditorSceneManager.RestoreSceneManagerSetup(setup);
 
-		return timeOfDay;
-	}
+        return timeOfDay;
+    }
 
-	static void ClearConsole()
-	{
-		var logEntries = System.Type.GetType("UnityEditor.LogEntries,UnityEditor.dll");
-		var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
-		clearMethod.Invoke(null, null);
-	}
+    static void ClearConsole()
+    {
+        var logEntries = System.Type.GetType("UnityEditor.LogEntries,UnityEditor.dll");
+        var clearMethod = logEntries.GetMethod("Clear", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+        clearMethod.Invoke(null, null);
+    }
 
-	public static IEnumerable<T> FindAssetsByType<T>() where T : Object
-	{
-		var guids = AssetDatabase.FindAssets($"t:{typeof(T)}");
-		foreach (var t in guids)
-		{
-			var assetPath = AssetDatabase.GUIDToAssetPath(t);
-			var asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
-			if (asset != null)
-			{
-				yield return asset;
-			}
-		}
-	}
+    public static IEnumerable<T> FindAssetsByType<T>() where T : Object
+    {
+        var guids = AssetDatabase.FindAssets($"t:{typeof(T)}");
+        foreach (var t in guids)
+        {
+            var assetPath = AssetDatabase.GUIDToAssetPath(t);
+            var asset = AssetDatabase.LoadAssetAtPath<T>(assetPath);
+            if (asset != null)
+            {
+                yield return asset;
+            }
+        }
+    }
 }
