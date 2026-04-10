@@ -47,6 +47,12 @@ public class DynamicConfigDrawer : PropertyDrawer
             case DuskDynamicConfigType.AnimationCurve:
                 EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultAnimationCurve"), new GUIContent("Default Value"));
                 break;
+            case DuskDynamicConfigType.Vector3:
+                EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultVector3"), new GUIContent("Default Value"));
+                break;
+            case DuskDynamicConfigType.Color:
+                EditorGUI.PropertyField(defaultRect, property.FindPropertyRelative("defaultColor"), new GUIContent("Default Value"));
+                break;
         }
 
         EditorGUI.PropertyField(descRect, property.FindPropertyRelative("Description"), new GUIContent("Description"));
