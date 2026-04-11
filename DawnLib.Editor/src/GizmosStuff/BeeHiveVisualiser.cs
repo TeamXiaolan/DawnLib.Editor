@@ -12,7 +12,15 @@ public static class BeeHiveVisualiser
     private static readonly Vector3 SphereCenter = new Vector3(4.48f, -0.38f, -14.3f);
     private const float SphereRadius = 40f;
 
+    private const string ToggleKey = "Dawn.Editor.BeeHiveVisualiser.Enabled";
+
     private static List<SelectableLevel> cachedLevels = new();
+
+    private static bool IsEnabled
+    {
+        get => EditorPrefs.GetBool(ToggleKey, true);
+        set => EditorPrefs.SetBool(ToggleKey, value);
+    }
 
     static BeeHiveVisualiser()
     {
@@ -20,6 +28,27 @@ public static class BeeHiveVisualiser
 
         SceneView.duringSceneGui += OnSceneGUI;
         EditorApplication.projectChanged += OnProjectChanged;
+        EditorApplication.delayCall += UpdateMenuCheckmark;
+    }
+
+    [MenuItem("DawnLib/Gizmos/Toggle Bee Hive Visualiser")]
+    private static void ToggleVisualiser()
+    {
+        IsEnabled = !IsEnabled;
+        UpdateMenuCheckmark();
+        SceneView.RepaintAll();
+    }
+
+    [MenuItem("DawnLib/Gizmos/Toggle Bee Hive Visualiser", true)]
+    private static bool ToggleVisualiserValidate()
+    {
+        Menu.SetChecked("DawnLib/Gizmos/Toggle Bee Hive Visualiser", IsEnabled);
+        return true;
+    }
+
+    private static void UpdateMenuCheckmark()
+    {
+        Menu.SetChecked("DawnLib/Gizmos/Toggle Bee Hive Visualiser", IsEnabled);
     }
 
     private static void OnProjectChanged()
@@ -35,6 +64,9 @@ public static class BeeHiveVisualiser
 
     private static void OnSceneGUI(SceneView sceneView)
     {
+        if (!IsEnabled)
+            return;
+
         SelectableLevel? currentLevel = null;
         foreach (SelectableLevel level in cachedLevels)
         {
@@ -72,15 +104,6 @@ public static class BeeHiveVisualiser
         Handles.color = Color.yellow;
 
         DrawWireSphere(SphereCenter, SphereRadius);
-
-        // Example usage of cached levels:
-        // foreach (SelectableLevel level in cachedLevels)
-        // {
-        //     if (level == null)
-        //         continue;
-        //
-        //     Debug.Log(level.name);
-        // }
     }
 
     private static void DrawWireSphere(Vector3 center, float radius)
