@@ -114,10 +114,12 @@ public class SpawnSyncedObjectEditor : UnityEditor.Editor
         Gizmos.color = DuskMapObjectDefinitionCache.PreviewColor;
 
         Matrix4x4 prefabRootInverse = prefab.transform.worldToLocalMatrix;
-        Matrix4x4 prefabRootScale = Matrix4x4.Scale(prefab.transform.localScale);
-        Matrix4x4 spawnerWorld = spawnerTransform.localToWorldMatrix;
 
-        Matrix4x4 rootScaleMatrix = prefabRootScale;
+        Matrix4x4 spawnerMatrix = Matrix4x4.TRS(
+            spawnerTransform.position,
+            spawnerTransform.rotation,
+            prefab.transform.localScale
+        );
 
         foreach (ProBuilderMesh pbMesh in pbMeshes)
         {
@@ -129,7 +131,7 @@ public class SpawnSyncedObjectEditor : UnityEditor.Editor
                 continue;
 
             Matrix4x4 childToPrefabRoot = prefabRootInverse * pbMesh.transform.localToWorldMatrix;
-            Gizmos.matrix = spawnerWorld * rootScaleMatrix * childToPrefabRoot;
+            Gizmos.matrix = spawnerMatrix * childToPrefabRoot;
 
             Gizmos.DrawMesh(pbMesh.mesh, Vector3.zero, Quaternion.identity, Vector3.one);
         }
@@ -144,7 +146,7 @@ public class SpawnSyncedObjectEditor : UnityEditor.Editor
                 continue;
 
             Matrix4x4 childToPrefabRoot = prefabRootInverse * meshFilter.transform.localToWorldMatrix;
-            Gizmos.matrix = spawnerWorld * rootScaleMatrix * childToPrefabRoot;
+            Gizmos.matrix = spawnerMatrix * childToPrefabRoot;
 
             Gizmos.DrawMesh(meshFilter.sharedMesh, Vector3.zero, Quaternion.identity, Vector3.one);
         }
@@ -158,7 +160,7 @@ public class SpawnSyncedObjectEditor : UnityEditor.Editor
                 continue;
 
             Matrix4x4 childToPrefabRoot = prefabRootInverse * skinnedMeshRenderer.transform.localToWorldMatrix;
-            Gizmos.matrix = spawnerWorld * rootScaleMatrix * childToPrefabRoot;
+            Gizmos.matrix = spawnerMatrix * childToPrefabRoot;
 
             Gizmos.DrawMesh(skinnedMeshRenderer.sharedMesh, Vector3.zero, Quaternion.identity, Vector3.one);
         }
