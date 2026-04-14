@@ -44,6 +44,7 @@ public class SceneReferenceDrawer : PropertyDrawer
 
             if (currentSceneAsset == null)
             {
+                Debug.Log($"[ DawnLib.Editor ] SceneReferenceDrawer: Could not find scene asset at path: {currentPath}");
                 SceneReferencesDict.Remove(currentPath);
 
                 scenePathProp.stringValue = string.Empty;
@@ -54,7 +55,7 @@ public class SceneReferenceDrawer : PropertyDrawer
         }
 
         EditorGUI.BeginChangeCheck();
-        var pickedSceneAsset = (SceneAsset)EditorGUI.ObjectField(position, label, currentSceneAsset, typeof(SceneAsset), false);
+        SceneAsset pickedSceneAsset = (SceneAsset)EditorGUI.ObjectField(position, label, currentSceneAsset, typeof(SceneAsset), false);
 
         bool propsChanged = false;
 
@@ -74,12 +75,14 @@ public class SceneReferenceDrawer : PropertyDrawer
 
                 SceneReferencesDict[path] = pickedSceneAsset;
                 propsChanged = true;
+                Debug.Log($"[ DawnLib.Editor ] SceneReferenceDrawer: Picked scene asset at path: {path}");
             }
             else
             {
                 if (!string.IsNullOrEmpty(scenePathProp.stringValue))
                     SceneReferencesDict.Remove(scenePathProp.stringValue);
 
+                Debug.Log($"[ DawnLib.Editor ] SceneReferenceDrawer: Cleared scene asset at path: {scenePathProp.stringValue}");
                 scenePathProp.stringValue = string.Empty;
                 assetGuidProp.stringValue = string.Empty;
                 bundleNameProp.stringValue = string.Empty;
@@ -95,12 +98,14 @@ public class SceneReferenceDrawer : PropertyDrawer
 
                 if (bundleNameProp.stringValue != importerBundle)
                 {
+                    Debug.Log($"[ DawnLib.Editor ] SceneReferenceDrawer: Updated bundle name for scene asset at path: {scenePathProp.stringValue}");
                     bundleNameProp.stringValue = importerBundle;
                     propsChanged = true;
                 }
 
                 if (string.IsNullOrEmpty(assetGuidProp.stringValue))
                 {
+                    Debug.Log($"[ DawnLib.Editor ] SceneReferenceDrawer: Updated GUID for scene asset at path: {scenePathProp.stringValue}");
                     string guid = AssetDatabase.GUIDFromAssetPath(scenePathProp.stringValue).ToString();
                     if (!string.IsNullOrEmpty(guid))
                     {
