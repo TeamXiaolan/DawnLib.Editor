@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DawnLib.Editor.Converter/DawnLib.Editor.Converter.csproj" />
+  <Project Path="DawnLib.Editor/DawnLib.Editor.csproj" />
+</Solution>
