@@ -69,7 +69,9 @@ public class DuskContentReferenceDrawer : PropertyDrawer
             else
             {
                 reference.assetGUID = string.Empty;
+                #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                 reference.Key = null;
+                #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
             }
 
             property.SetManagedReference(reference, "Set New Reference");

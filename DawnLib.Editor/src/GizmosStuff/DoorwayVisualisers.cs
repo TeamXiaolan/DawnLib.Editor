@@ -13,7 +13,14 @@ public static class DoorwayGizmoDrawer
         Vector2 halfSize = size * 0.5f;
         Color doorwayColour;
 
-        bool isValidPlacement = area.ValidateTransform(out var localTileBounds, out bool isAxisAligned, out bool isEdgePositioned);
+        bool isValidPlacement = area.ValidateTransform(out Bounds localTileBounds, out bool isAxisAligned, out bool isEdgePositioned);
+        area.GetTileRoot(out _, out Tile tile);
+        if (tile != null && !tile.OverrideAutomaticTileBounds)
+        {
+            Bounds bounds = UnityUtil.CalculateObjectBounds(tile.gameObject, false, DunGenSettings.Instance.BoundsCalculationsIgnoreSprites, true);
+            bounds = UnityUtil.CondenseBounds(bounds, tile.GetComponentsInChildren<Doorway>(true));
+            localTileBounds = bounds;
+        }
 
         if (isValidPlacement)
         {
@@ -27,7 +34,6 @@ public static class DoorwayGizmoDrawer
         {
             doorwayColour = EditorConstants.DoorRectColourWarning;
         }
-
 
         // Draw Forward Vector
         float lineLength = Mathf.Min(size.x, size.y);
@@ -57,8 +63,6 @@ public static class DoorwayGizmoDrawer
         // Draw position correction line
         if (!isValidPlacement)
         {
-            area.GetTileRoot(out _, out var tile);
-
             // Projected position is meaningless if the Doorway isn't attached to a Tile
             if (tile != null)
             {
