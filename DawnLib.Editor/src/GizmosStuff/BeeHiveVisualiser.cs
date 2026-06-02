@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -64,7 +65,7 @@ public static class BeeHiveVisualiser
 
     private static void OnSceneGUI(SceneView sceneView)
     {
-        if (!IsEnabled)
+        if (!IsEnabled || cachedLevels.Count == 0 || PrefabStageUtility.GetCurrentPrefabStage().mode == PrefabStage.Mode.InIsolation)
             return;
 
         SelectableLevel? currentLevel = null;
