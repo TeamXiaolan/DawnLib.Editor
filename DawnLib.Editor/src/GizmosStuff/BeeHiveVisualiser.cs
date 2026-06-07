@@ -65,7 +65,8 @@ public static class BeeHiveVisualiser
 
     private static void OnSceneGUI(SceneView sceneView)
     {
-        if (!IsEnabled || cachedLevels.Count == 0 || PrefabStageUtility.GetCurrentPrefabStage().mode == PrefabStage.Mode.InIsolation)
+        PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+        if (!IsEnabled || cachedLevels.Count == 0 || (prefabStage != null && prefabStage.mode == PrefabStage.Mode.InIsolation))
             return;
 
         SelectableLevel? currentLevel = null;

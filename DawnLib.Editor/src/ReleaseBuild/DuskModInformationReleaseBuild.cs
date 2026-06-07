@@ -32,14 +32,21 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
         using (new EditorGUILayout.HorizontalScope())
         {
             EditorGUILayout.LabelField("AssetBundle Directory:", GUILayout.Width(140));
+
+            EditorGUI.BeginChangeCheck();
             AssetBundleFolderPath = EditorGUILayout.TextField(AssetBundleFolderPath);
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorPrefs.SetString("DawnLibEditor.AssetBundlePath." + modInfo.name, AssetBundleFolderPath);
+            }
+
             if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
             {
                 string path = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
-                    EditorPrefs.SetString("DawnLibEditor.AssetBundlePath." + modInfo.name, path);
                     AssetBundleFolderPath = path;
+                    EditorPrefs.SetString("DawnLibEditor.AssetBundlePath." + modInfo.name, path);
                 }
             }
         }
@@ -47,14 +54,21 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
         using (new EditorGUILayout.HorizontalScope())
         {
             EditorGUILayout.LabelField("Build Output Directory:", GUILayout.Width(140));
+
+            EditorGUI.BeginChangeCheck();
             BuildOutputPath = EditorGUILayout.TextField(BuildOutputPath);
+            if (EditorGUI.EndChangeCheck())
+            {
+                EditorPrefs.SetString("DawnLibEditor.BuildOutputPath." + modInfo.name, BuildOutputPath);
+            }
+
             if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
             {
                 string path = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
-                    EditorPrefs.SetString("DawnLibEditor.BuildOutputPath." + modInfo.name, path);
                     BuildOutputPath = path;
+                    EditorPrefs.SetString("DawnLibEditor.BuildOutputPath." + modInfo.name, path);
                 }
             }
         }
@@ -72,6 +86,20 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
     private void BuildZipPackage(DuskModInformation modInfo)
     {
+        if (!Directory.Exists(AssetBundleFolderPath))
+        {
+            EditorUtility.DisplayDialog("Error", "AssetBundle directory does not exist.", "OK");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(BuildOutputPath))
+        {
+            EditorUtility.DisplayDialog("Error", "Build output directory has not been set.", "OK");
+            return;
+        }
+
+        Directory.CreateDirectory(BuildOutputPath);
+
         var tempRoot = Path.Combine(Path.GetTempPath(), $"DuskModPack_{Guid.NewGuid()}");
         var pluginsDir = Path.Combine(tempRoot, "plugins");
         var assetsSubDir = Path.Combine(pluginsDir, "Assets");
@@ -79,76 +107,19 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
         try
         {
-            if (modInfo.READMEFile != null)
-            {
-                File.WriteAllBytes(Path.Combine(tempRoot, "README.md"), modInfo.READMEFile.bytes);
-            }
+            WriteTextFiles(modInfo, tempRoot);
 
-            if (modInfo.ChangelogFile != null)
+            if (!TryWriteIcon(modInfo, tempRoot))
             {
-                File.WriteAllBytes(Path.Combine(tempRoot, "CHANGELOG.md"), modInfo.ChangelogFile.bytes);
-            }
-
-            if (modInfo.ModIcon == null)
-            {
-                EditorUtility.DisplayDialog("Error", "Mod icon not provided, aborting.", "OK");
                 return;
             }
 
-            Sprite sprite = modInfo.ModIcon;
+            CopyBuiltAssetBundles(pluginsDir, assetsSubDir);
 
-            if (sprite.texture.width > 256 || sprite.texture.height > 256)
-            {
-                EditorUtility.DisplayDialog("Error", $"Mod Icon is {sprite.texture.width}x{sprite.texture.height}, it needs to be resized to a maximum of 256x256, aborting.", "OK");
-                // var resized = new Texture2D(256, 256, tex.format, mipChain: false);
-                // Graphics.ConvertTexture(tex, resized);
-                // File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), resized.EncodeToPNG());
-                return;
-            }
+            CopyLooseDlls(AssetBundleFolderPath, pluginsDir);
 
-            Texture2D decompressedTexture = sprite.texture.DeCompress();
-            File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), decompressedTexture.EncodeToPNG());
-
-            bool includeWR = false;
-            string[] allBundleFilePaths = Directory.GetFiles(AssetBundleFolderPath);
-            foreach (string potentialBundleFilePath in allBundleFilePaths)
-            {
-                string fileExtension = Path.GetExtension(potentialBundleFilePath).ToLowerInvariant();
-                if (fileExtension == ".meta")
-                    continue;
-
-                if (fileExtension == ".manifest")
-                    continue;
-
-                if (fileExtension == ".lethalbundle")
-                    continue;
-
-                if (fileExtension == ".dll")
-                {
-                    File.Copy(potentialBundleFilePath, Path.Combine(pluginsDir, Path.GetFileName(potentialBundleFilePath)), true);
-                    continue;
-                }
-                AssetBundle? assetBundle = AssetBundle.LoadFromFile(potentialBundleFilePath);
-                if (assetBundle == null)
-                    continue;
-
-                string destDir = fileExtension == ".duskmod" ? pluginsDir : assetsSubDir;
-                string dest = Path.Combine(destDir, Path.GetFileName(potentialBundleFilePath));
-                File.Copy(potentialBundleFilePath, dest, true);
-
-                if (assetBundle.isStreamedSceneAssetBundle)
-                    continue;
-
-                if (assetBundle.LoadAllAssets<DuskWeatherDefinition>().Length > 0)
-                {
-                    includeWR = true;
-                    Debug.Log($"[DawnLib Editor] Bundle '{Path.GetFileName(potentialBundleFilePath)}' contains a DuskWeatherDefinition!");
-                }
-                assetBundle.Unload(true);
-            }
-
-            ThunderstoreManifest manifest = new ThunderstoreManifest(modInfo, includeWR);
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(manifest);
+            ThunderstoreManifest manifest = new ThunderstoreManifest(modInfo);
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(manifest, Newtonsoft.Json.Formatting.Indented);
             File.WriteAllText(Path.Combine(tempRoot, "manifest.json"), json);
 
             string zipName = $"{modInfo.AuthorName}.{modInfo.ModName}_{modInfo.Version}.zip";
@@ -165,7 +136,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
         catch (Exception ex)
         {
             EditorUtility.DisplayDialog("Error", $"Failed to build mod package: {ex.Message}", "OK");
-            Debug.LogError($"[DawnLib Editor] Failed to build mod package: {ex.Message}");
+            Debug.LogError($"[DawnLib Editor] Failed to build mod package: {ex}");
         }
         finally
         {
@@ -175,5 +146,91 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
             }
             catch { /* ignore */ }
         }
+    }
+
+    private static void WriteTextFiles(DuskModInformation modInfo, string tempRoot)
+    {
+        if (modInfo.READMEFile != null)
+        {
+            File.WriteAllBytes(Path.Combine(tempRoot, "README.md"), modInfo.READMEFile.bytes);
+        }
+
+        if (modInfo.ChangelogFile != null)
+        {
+            File.WriteAllBytes(Path.Combine(tempRoot, "CHANGELOG.md"), modInfo.ChangelogFile.bytes);
+        }
+    }
+
+    private static bool TryWriteIcon(DuskModInformation modInfo, string tempRoot)
+    {
+        if (modInfo.ModIcon == null)
+        {
+            EditorUtility.DisplayDialog("Error", "Mod icon not provided, aborting.", "OK");
+            return false;
+        }
+
+        Sprite sprite = modInfo.ModIcon;
+
+        if (sprite.texture.width > 256 || sprite.texture.height > 256)
+        {
+            EditorUtility.DisplayDialog(
+                "Error",
+                $"Mod Icon is {sprite.texture.width}x{sprite.texture.height}. It needs to be a maximum of 256x256, aborting.",
+                "OK"
+            );
+
+            return false;
+        }
+
+        Texture2D decompressedTexture = sprite.texture.DeCompress();
+        File.WriteAllBytes(Path.Combine(tempRoot, "icon.png"), decompressedTexture.EncodeToPNG());
+
+        return true;
+    }
+
+    private void CopyBuiltAssetBundles(string pluginsDir, string assetsSubDir)
+    {
+        string[] bundleNames = AssetDatabase.GetAllAssetBundleNames();
+
+        foreach (string bundleName in bundleNames)
+        {
+            string sourcePath = GetBuiltAssetBundlePath(AssetBundleFolderPath, bundleName);
+
+            if (!File.Exists(sourcePath))
+            {
+                Debug.LogWarning($"[DawnLib Editor] AssetBundle '{bundleName}' is registered in the project, but no built file was found at: {sourcePath}");
+                continue;
+            }
+
+            string destinationRoot = bundleName.EndsWith(".duskmod", StringComparison.OrdinalIgnoreCase)
+                ? pluginsDir
+                : assetsSubDir;
+
+            string relativeBundlePath = ToPlatformPath(bundleName);
+            string destinationPath = Path.Combine(destinationRoot, relativeBundlePath);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            File.Copy(sourcePath, destinationPath, overwrite: true);
+        }
+    }
+
+    private static void CopyLooseDlls(string assetBundleFolderPath, string pluginsDir)
+    {
+        foreach (string dllPath in Directory.EnumerateFiles(assetBundleFolderPath, "*.dll", SearchOption.AllDirectories))
+        {
+            string destinationPath = Path.Combine(pluginsDir, Path.GetFileName(dllPath));
+            File.Copy(dllPath, destinationPath, overwrite: true);
+        }
+    }
+
+    private static string GetBuiltAssetBundlePath(string assetBundleFolderPath, string bundleName)
+    {
+        return Path.Combine(assetBundleFolderPath, ToPlatformPath(bundleName));
+    }
+
+    private static string ToPlatformPath(string assetBundleName)
+    {
+        return assetBundleName.Replace('/', Path.DirectorySeparatorChar)
+                              .Replace('\\', Path.DirectorySeparatorChar);
     }
 }
