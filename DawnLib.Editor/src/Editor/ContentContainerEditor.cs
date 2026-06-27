@@ -91,7 +91,7 @@ public class ContentContainerEditor : UnityEditor.Editor
             Build(additionalTiles, "AdditionalTilesKeys", "DawnAdditionalTilesInfo", d => d.EntityNameReference, d => d.Key);
             Build(achievements, "AchievementKeys", "Dusk.DuskAchievementDefinition", d => d.EntityNameReference, d => d.Key);
             Build(vehicles, "VehicleKeys", "DawnVehicleInfo", d => d.EntityNameReference, d => d.Key);
-            Build(entityReplacements, "EntityReplacementKeys", "Dusk.DustEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
+            Build(entityReplacements, "EntityReplacementKeys", "Dusk.DuskEntityReplacementDefinition", d => d.EntityNameReference, d => d.Key);
             Build(moons, "MoonKeys", "DawnMoonInfo", d => d.EntityNameReference, d => d.Key);
             Build(dungeons, "DungeonKeys", "DawnDungeonInfo", d => d.EntityNameReference, d => d.Key);
 
