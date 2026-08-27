@@ -17,7 +17,16 @@ public class GraphLineDrawer : PropertyDrawer
             string archetypes = string.Empty;
             foreach (var archetype in data.DungeonArchetypes)
             {
+                if (archetype == null)
+                {
+                    continue;
+                }
                 archetypes += $"{archetype.name}:";
+            }
+
+            if (archetypes == string.Empty)
+            {
+                archetypes = "No Archetypes Set:";
             }
             archetypes = archetypes[..^1];
             displayName = $"Pos: {data.Position} | Length: {data.Length} | {archetypes}";

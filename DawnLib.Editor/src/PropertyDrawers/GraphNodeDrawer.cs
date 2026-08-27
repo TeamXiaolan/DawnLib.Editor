@@ -17,7 +17,16 @@ public class GraphNodeDrawer : PropertyDrawer
             string tileSets = string.Empty;
             foreach (var tileSet in data.TileSets)
             {
+                if (tileSet == null)
+                {
+                    continue;
+                }
                 tileSets += $"{tileSet.name}:";
+            }
+
+            if (tileSets == string.Empty)
+            {
+                tileSets = "No TileSets Set:";
             }
             tileSets = tileSets[..^1];
             displayName = $"Type: {data.NodeType} | Pos: {data.Position} | Label: {data.Label} | {tileSets}";
