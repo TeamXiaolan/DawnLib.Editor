@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DunGen;
 using DunGen.Graph;
 using Dusk.Utils;
 using UnityEditor;
@@ -29,7 +30,7 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
         // Try to load from cache
         if (!string.IsNullOrEmpty(currentName))
         {
-            if (!DungeonFlowCache.TryGetValue(currentName, out var cachedFlow) || cachedFlow == null)
+            if (!DungeonFlowCache.TryGetValue(currentName, out DungeonFlow? cachedFlow) || cachedFlow == null)
             {
                 currentDungeonFlow = LoadDungeonFlowByName(currentName);
                 if (currentDungeonFlow != null)
@@ -63,7 +64,7 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
             {
                 string flowName = pickedDungeonFlow.name;
                 string assetPath = AssetDatabase.GetAssetPath(pickedDungeonFlow);
-                var importer = AssetImporter.GetAtPath(assetPath);
+                AssetImporter importer = AssetImporter.GetAtPath(assetPath);
                 string bundle = importer?.assetBundleName ?? string.Empty;
 
                 nameProperty.stringValue = flowName;
@@ -72,23 +73,42 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 dungeonArchetypeNamesProperty.ClearArray();
                 archetypeTileSetsProperty.ClearArray();
 
-                var archetypeToTileSets = new SortedDictionary<string, HashSet<string>>(StringComparer.Ordinal);
-                var allTileSetNames = new HashSet<string>(StringComparer.Ordinal);
+                SortedDictionary<string, HashSet<string>> archetypeToTileSets = new(StringComparer.Ordinal);
+                HashSet<string> allTileSetNames = new(StringComparer.Ordinal);
 
-                foreach (var archetype in pickedDungeonFlow.GetUsedArchetypes())
+                foreach (GraphNode graphNode in pickedDungeonFlow.Nodes)
+                {
+                    foreach (TileSet tileSet in graphNode.TileSets)
+                    {
+                        if (tileSet == null)
+                            continue;
+
+                        allTileSetNames.Add(tileSet.name);
+                    }
+                }
+
+                foreach (DungeonArchetype archetype in pickedDungeonFlow.GetUsedArchetypes())
                 {
                     if (archetype == null)
                         continue;
 
                     string archetypeName = archetype.name;
-
-                    if (!archetypeToTileSets.TryGetValue(archetypeName, out var tileSetSet))
+                    if (!archetypeToTileSets.TryGetValue(archetypeName, out HashSet<string> tileSetSet))
                     {
                         tileSetSet = new HashSet<string>(StringComparer.Ordinal);
                         archetypeToTileSets.Add(archetypeName, tileSetSet);
                     }
 
-                    foreach (var tileSet in archetype.TileSets)
+                    foreach (TileSet tileSet in archetype.TileSets)
+                    {
+                        if (tileSet == null)
+                            continue;
+
+                        tileSetSet.Add(tileSet.name);
+                        allTileSetNames.Add(tileSet.name);
+                    }
+
+                    foreach (TileSet tileSet in archetype.BranchCapTileSets)
                     {
                         if (tileSet == null)
                             continue;
@@ -98,17 +118,17 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                     }
                 }
 
-                foreach (var kvp in archetypeToTileSets)
+                foreach (KeyValuePair<string, HashSet<string>> kvp in archetypeToTileSets)
                 {
                     int newIndex = dungeonArchetypeNamesProperty.arraySize;
                     dungeonArchetypeNamesProperty.InsertArrayElementAtIndex(newIndex);
                     dungeonArchetypeNamesProperty.GetArrayElementAtIndex(newIndex).stringValue = kvp.Key;
                 }
 
-                var sortedTileSets = allTileSetNames.ToList();
+                List<string> sortedTileSets = allTileSetNames.ToList();
                 sortedTileSets.Sort(StringComparer.Ordinal);
 
-                foreach (var tileSetName in sortedTileSets)
+                foreach (string tileSetName in sortedTileSets)
                 {
                     int newIndex = tileSetNamesProperty.arraySize;
                     tileSetNamesProperty.InsertArrayElementAtIndex(newIndex);
@@ -116,18 +136,18 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
                 }
 
                 int mappingIndex = 0;
-                foreach (var kvp in archetypeToTileSets)
+                foreach (KeyValuePair<string, HashSet<string>> kvp in archetypeToTileSets)
                 {
                     archetypeTileSetsProperty.InsertArrayElementAtIndex(mappingIndex);
-                    var mappingProp = archetypeTileSetsProperty.GetArrayElementAtIndex(mappingIndex);
+                    SerializedProperty mappingProp = archetypeTileSetsProperty.GetArrayElementAtIndex(mappingIndex);
 
-                    var archetypeNameProp = mappingProp.FindPropertyRelative("_archetypeName");
-                    var mappingTileSetNamesProp = mappingProp.FindPropertyRelative("_tileSetNames");
+                    SerializedProperty archetypeNameProp = mappingProp.FindPropertyRelative("_archetypeName");
+                    SerializedProperty mappingTileSetNamesProp = mappingProp.FindPropertyRelative("_tileSetNames");
 
                     archetypeNameProp.stringValue = kvp.Key;
 
                     mappingTileSetNamesProp.ClearArray();
-                    var perArchetypeTileSets = kvp.Value.ToList();
+                    List<string> perArchetypeTileSets = kvp.Value.ToList();
                     perArchetypeTileSets.Sort(StringComparer.Ordinal);
 
                     for (int i = 0; i < perArchetypeTileSets.Count; i++)
@@ -160,7 +180,7 @@ public class DungeonFlowReferenceDrawer : PropertyDrawer
             if (!string.IsNullOrEmpty(nameProperty.stringValue) && currentDungeonFlow != null)
             {
                 string assetPath = AssetDatabase.GetAssetPath(currentDungeonFlow);
-                var importer = AssetImporter.GetAtPath(assetPath);
+                AssetImporter importer = AssetImporter.GetAtPath(assetPath);
                 string importerBundle = importer?.assetBundleName ?? string.Empty;
 
                 if (bundleNameProp.stringValue != importerBundle)

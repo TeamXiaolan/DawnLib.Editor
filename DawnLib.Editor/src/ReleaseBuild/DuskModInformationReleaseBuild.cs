@@ -98,6 +98,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
             return;
         }
 
+        Debug.Log($"[DawnLib Editor] Building mod package at: {BuildOutputPath}");
         Directory.CreateDirectory(BuildOutputPath);
 
         var tempRoot = Path.Combine(Path.GetTempPath(), $"DuskModPack_{Guid.NewGuid()}");
@@ -191,9 +192,10 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
     private void CopyBuiltAssetBundles(string pluginsDir, string assetsSubDir)
     {
         string[] bundleNames = AssetDatabase.GetAllAssetBundleNames();
-
+        Debug.Log($"[DawnLib Editor] Copying {bundleNames.Length} AssetBundles");
         foreach (string bundleName in bundleNames)
         {
+            Debug.Log($"[DawnLib Editor] Copying AssetBundle '{bundleName}'");
             string sourcePath = GetBuiltAssetBundlePath(AssetBundleFolderPath, bundleName);
 
             if (!File.Exists(sourcePath))
@@ -209,7 +211,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
             string relativeBundlePath = ToPlatformPath(bundleName);
             string destinationPath = Path.Combine(destinationRoot, relativeBundlePath);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath));
             File.Copy(sourcePath, destinationPath, overwrite: true);
         }
     }
