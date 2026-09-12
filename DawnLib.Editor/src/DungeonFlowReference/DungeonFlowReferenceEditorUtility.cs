@@ -4,6 +4,7 @@ using System.Linq;
 using DunGen;
 using DunGen.Graph;
 using UnityEditor;
+using static Dusk.Utils.DungeonFlowReference;
 
 namespace Dawn.Editor.PropertyDrawers;
 
@@ -12,12 +13,15 @@ internal static class DungeonFlowReferenceEditorUtility
     private const string FlowAssetGuidField = "_flowAssetGuid";
     private const string FlowAssetNameField = "_flowAssetName";
     private const string BundleNameField = "_bundleName";
-    private const string TileSetNamesField = "_tileSetNames";
     private const string DungeonArchetypeNamesField = "_dungeonArchetypeNames";
     private const string ArchetypeTileSetsField = "_archetypeTileSets";
+    private const string GraphNodeReferencesField = "_graphNodeReferences";
 
     private const string ArchetypeNameField = "_archetypeName";
     private const string MappingTileSetNamesField = "_tileSetNames";
+    private const string MappingBranchCapTileSetNamesField = "_branchCapTileSetNames";
+
+    private const string GraphNodeReferenceTileSetNamesField = "_tileSetNames";
 
     public static DungeonFlow? ResolveDungeonFlow(SerializedProperty property)
     {
@@ -64,9 +68,9 @@ internal static class DungeonFlowReferenceEditorUtility
         SerializedProperty guidProperty = RequireRelative(property, FlowAssetGuidField);
         SerializedProperty nameProperty = RequireRelative(property, FlowAssetNameField);
         SerializedProperty bundleNameProperty = RequireRelative(property, BundleNameField);
-        SerializedProperty tileSetNamesProperty = RequireRelative(property, TileSetNamesField);
         SerializedProperty dungeonArchetypeNamesProperty = RequireRelative(property, DungeonArchetypeNamesField);
         SerializedProperty archetypeTileSetsProperty = RequireRelative(property, ArchetypeTileSetsField);
+        SerializedProperty graphNodeReferencesProperty = RequireRelative(property, GraphNodeReferencesField);
 
         string assetPath = AssetDatabase.GetAssetPath(dungeonFlow);
         string guid = AssetDatabase.AssetPathToGUID(assetPath);
@@ -76,18 +80,16 @@ internal static class DungeonFlowReferenceEditorUtility
         nameProperty.stringValue = dungeonFlow.name;
         bundleNameProperty.stringValue = importer?.assetBundleName ?? string.Empty;
 
-        SortedDictionary<string, HashSet<string>> archetypeToTileSets = new(StringComparer.Ordinal);
-        HashSet<string> allTileSetNames = new(StringComparer.Ordinal);
+        SortedDictionary<string, (HashSet<string> branchCapTileSetNames, HashSet<string> tileSetNames)> archetypeToTileSets = new(StringComparer.Ordinal);
+        List<GraphNodeReference> graphNodeReferences = new();
 
         foreach (GraphNode graphNode in dungeonFlow.Nodes)
         {
-            foreach (TileSet tileSet in graphNode.TileSets)
+            GraphNodeReference newReference = new GraphNodeReference
             {
-                if (tileSet == null)
-                    continue;
-
-                allTileSetNames.Add(tileSet.name);
-            }
+                _tileSetNames = graphNode.TileSets.Select(tileSet => tileSet.name).ToArray()
+            };
+            graphNodeReferences.Add(newReference);
         }
 
         IEnumerable<DungeonArchetype> usedArchetypes = dungeonFlow.GetUsedArchetypes();
@@ -97,10 +99,11 @@ internal static class DungeonFlowReferenceEditorUtility
                 continue;
 
             string archetypeName = archetype.name;
-            if (!archetypeToTileSets.TryGetValue(archetypeName, out HashSet<string> tileSetSet))
+            if (!archetypeToTileSets.TryGetValue(archetypeName, out (HashSet<string> branchCapTileSetNames, HashSet<string> tileSetNames) pair))
             {
-                tileSetSet = new HashSet<string>(StringComparer.Ordinal);
-                archetypeToTileSets.Add(archetypeName, tileSetSet);
+                pair.branchCapTileSetNames = new HashSet<string>(StringComparer.Ordinal);
+                pair.tileSetNames = new HashSet<string>(StringComparer.Ordinal);
+                archetypeToTileSets.Add(archetypeName, pair);
             }
 
             foreach (TileSet tileSet in archetype.TileSets)
@@ -108,8 +111,7 @@ internal static class DungeonFlowReferenceEditorUtility
                 if (tileSet == null)
                     continue;
 
-                tileSetSet.Add(tileSet.name);
-                allTileSetNames.Add(tileSet.name);
+                pair.tileSetNames.Add(tileSet.name);
             }
 
             foreach (TileSet tileSet in archetype.BranchCapTileSets)
@@ -117,19 +119,14 @@ internal static class DungeonFlowReferenceEditorUtility
                 if (tileSet == null)
                     continue;
 
-                tileSetSet.Add(tileSet.name);
-                allTileSetNames.Add(tileSet.name);
+                pair.branchCapTileSetNames.Add(tileSet.name);
             }
         }
 
         SetStringArray(dungeonArchetypeNamesProperty, archetypeToTileSets.Keys);
 
-        List<string> sortedTileSetNames = allTileSetNames.ToList();
-        sortedTileSetNames.Sort(StringComparer.Ordinal);
-        SetStringArray(tileSetNamesProperty, sortedTileSetNames);
-
         archetypeTileSetsProperty.ClearArray();
-        foreach (KeyValuePair<string, HashSet<string>> pair in archetypeToTileSets)
+        foreach (KeyValuePair<string, (HashSet<string> branchCapTileSetNames, HashSet<string> tileSetNames)> pair in archetypeToTileSets)
         {
             int mappingIndex = archetypeTileSetsProperty.arraySize;
             archetypeTileSetsProperty.InsertArrayElementAtIndex(mappingIndex);
@@ -137,13 +134,22 @@ internal static class DungeonFlowReferenceEditorUtility
             SerializedProperty mappingProperty = archetypeTileSetsProperty.GetArrayElementAtIndex(mappingIndex);
             SerializedProperty archetypeNameProperty = RequireRelative(mappingProperty, ArchetypeNameField);
             SerializedProperty mappingTileSetNamesProperty = RequireRelative(mappingProperty, MappingTileSetNamesField);
+            SerializedProperty mappingBranchCapTileSetNamesProperty = RequireRelative(mappingProperty, MappingBranchCapTileSetNamesField);
 
             archetypeNameProperty.stringValue = pair.Key;
+            SetStringArray(mappingTileSetNamesProperty, pair.Value.tileSetNames);
+            SetStringArray(mappingBranchCapTileSetNamesProperty, pair.Value.branchCapTileSetNames);
+        }
 
-            List<string> sortedArchetypeTileSets = pair.Value.ToList();
-            sortedArchetypeTileSets.Sort(StringComparer.Ordinal);
+        graphNodeReferencesProperty.ClearArray();
+        foreach (GraphNodeReference graphNodeReference in graphNodeReferences)
+        {
+            int referenceIndex = graphNodeReferencesProperty.arraySize;
+            graphNodeReferencesProperty.InsertArrayElementAtIndex(referenceIndex);
 
-            SetStringArray(mappingTileSetNamesProperty, sortedArchetypeTileSets);
+            SerializedProperty graphNodeReferenceProperty = graphNodeReferencesProperty.GetArrayElementAtIndex(referenceIndex);
+            SerializedProperty graphNodeTileSetNamesProperty = RequireRelative(graphNodeReferenceProperty, GraphNodeReferenceTileSetNamesField);
+            SetStringArray(graphNodeTileSetNamesProperty, graphNodeReference._tileSetNames);
         }
     }
 
@@ -155,17 +161,17 @@ internal static class DungeonFlowReferenceEditorUtility
         SerializedProperty guidProperty = property.FindPropertyRelative(FlowAssetGuidField);
         SerializedProperty nameProperty = property.FindPropertyRelative(FlowAssetNameField);
         SerializedProperty bundleProperty = property.FindPropertyRelative(BundleNameField);
-        SerializedProperty tileSetNamesProperty = property.FindPropertyRelative(TileSetNamesField);
         SerializedProperty archetypeNamesProperty = property.FindPropertyRelative(DungeonArchetypeNamesField);
         SerializedProperty archetypeTileSetsProperty = property.FindPropertyRelative(ArchetypeTileSetsField);
+        SerializedProperty graphNodeReferencesProperty = property.FindPropertyRelative(GraphNodeReferencesField);
 
         guidProperty?.stringValue = string.Empty;
         nameProperty?.stringValue = string.Empty;
         bundleProperty?.stringValue = string.Empty;
 
-        tileSetNamesProperty?.ClearArray();
         archetypeNamesProperty?.ClearArray();
         archetypeTileSetsProperty?.ClearArray();
+        graphNodeReferencesProperty?.ClearArray();
     }
 
     public static bool IsDungeonFlowReference(SerializedProperty property)
@@ -179,9 +185,9 @@ internal static class DungeonFlowReferenceEditorUtility
             property.FindPropertyRelative(FlowAssetGuidField) != null &&
             property.FindPropertyRelative(FlowAssetNameField) != null &&
             property.FindPropertyRelative(BundleNameField) != null &&
-            property.FindPropertyRelative(TileSetNamesField) != null &&
             property.FindPropertyRelative(DungeonArchetypeNamesField) != null &&
-            property.FindPropertyRelative(ArchetypeTileSetsField) != null;
+            property.FindPropertyRelative(ArchetypeTileSetsField) != null &&
+            property.FindPropertyRelative(GraphNodeReferencesField) != null;
     }
 
     public static List<string> FindDungeonFlowReferencePropertyPaths(SerializedObject serializedObject)
