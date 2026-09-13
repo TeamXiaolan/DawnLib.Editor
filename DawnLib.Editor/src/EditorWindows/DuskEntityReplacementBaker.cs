@@ -19,6 +19,7 @@ public class DuskEntityReplacementBaker : EditorWindow
     private bool GenerateExtraAudioAnimationFields;
     private string outputFolder = "";
     private string authorName = "placeholder";
+    private string modName = "DuskReplacementEntities";
 
     private string BaseAssemblyNamePrefix = "com.local.placeholder.DuskReplacementEntities";
     private const string TargetFramework = "netstandard2.1";
@@ -48,6 +49,7 @@ public class DuskEntityReplacementBaker : EditorWindow
 
         outputFolder = EditorGUILayout.TextField("Output Folder (Assets)", outputFolder);
         authorName = EditorGUILayout.TextField("Author Name", authorName);
+        modName = EditorGUILayout.TextField("Mod Name", modName);
         EditorGUILayout.Space();
 
         using (new EditorGUI.DisabledScope(source == null))
@@ -162,6 +164,7 @@ public class DuskEntityReplacementBaker : EditorWindow
         string genDir = Path.Combine(projRoot, "Generated");
 
         BaseAssemblyNamePrefix = BaseAssemblyNamePrefix.Replace("placeholder", authorName);
+        BaseAssemblyNamePrefix = BaseAssemblyNamePrefix.Replace("DuskReplacementEntities", modName);
         string perAsmAssemblyName = $"{BaseAssemblyNamePrefix}.{srcAsmKey}";
 
         string extraRefName = Path.GetFileNameWithoutExtension(srcAsm.Location);
