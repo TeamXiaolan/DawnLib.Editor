@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using Dawn.Editor.Extensions;
@@ -12,6 +13,10 @@ namespace Dawn.Editor.ReleaseBuild;
 public class DuskModInformationReleaseBuild : UnityEditor.Editor
 {
     [field: SerializeField]
+    public List<string> DLLWhitelistedNames { get; private set; } = new List<string>();
+    [field: SerializeField]
+    public List<string> DLLFolderPaths { get; private set; } = new List<string>();
+    [field: SerializeField]
     public string AssetBundleFolderPath { get; private set; } = string.Empty;
     [field: SerializeField]
     public string BuildOutputPath { get; private set; } = string.Empty;
@@ -19,8 +24,10 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
     private void OnEnable()
     {
         DuskModInformation modInfo = (DuskModInformation)target;
+        LoadWhitelistedDLLNames();
         AssetBundleFolderPath = EditorPrefs.GetString("DawnLibEditor.AssetBundlePath." + modInfo.name, string.Empty);
         BuildOutputPath = EditorPrefs.GetString("DawnLibEditor.BuildOutputPath." + modInfo.name, string.Empty);
+        LoadDLLPaths();
     }
 
     public override void OnInspectorGUI()
@@ -28,6 +35,78 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
         base.OnInspectorGUI();
         DuskModInformation modInfo = (DuskModInformation)target;
         EditorGUILayout.Space(2.5f);
+
+        EditorGUILayout.LabelField("DLL Whitelists & Directories:");
+
+        EditorGUI.indentLevel++;
+
+        for (int i = 0; i < DLLWhitelistedNames.Count; i++)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUI.BeginChangeCheck();
+                DLLWhitelistedNames[i] = EditorGUILayout.TextField(DLLWhitelistedNames[i]);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SaveWhitelistedDLLNames();
+                }
+
+                if (GUILayout.Button("-", EditorStyles.miniButton, GUILayout.Width(25)))
+                {
+                    DLLWhitelistedNames.RemoveAt(i);
+                    SaveWhitelistedDLLNames();
+                    break;
+                }
+            }
+        }
+
+        if (GUILayout.Button("+ Add DLL Name"))
+        {
+            DLLWhitelistedNames.Add(string.Empty);
+            SaveWhitelistedDLLNames();
+        }
+
+        EditorGUI.indentLevel--;
+
+        EditorGUI.indentLevel++;
+
+        for (int i = 0; i < DLLFolderPaths.Count; i++)
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUI.BeginChangeCheck();
+                DLLFolderPaths[i] = EditorGUILayout.TextField(DLLFolderPaths[i]);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    SaveDLLPaths();
+                }
+
+                if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
+                {
+                    string path = EditorUtility.OpenFolderPanel("Select DLL Directory", DLLFolderPaths[i], string.Empty);
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        DLLFolderPaths[i] = path;
+                        SaveDLLPaths();
+                    }
+                }
+
+                if (GUILayout.Button("-", EditorStyles.miniButton, GUILayout.Width(25)))
+                {
+                    DLLFolderPaths.RemoveAt(i);
+                    SaveDLLPaths();
+                    break;
+                }
+            }
+        }
+
+        if (GUILayout.Button("+ Add DLL Directory"))
+        {
+            DLLFolderPaths.Add(string.Empty);
+            SaveDLLPaths();
+        }
+
+        EditorGUI.indentLevel--;
 
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -42,7 +121,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
             if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
             {
-                string path = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, "");
+                string path = EditorUtility.OpenFolderPanel("Select AssetBundle Directory", AssetBundleFolderPath, string.Empty);
                 if (!string.IsNullOrEmpty(path))
                 {
                     AssetBundleFolderPath = path;
@@ -64,7 +143,7 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
             if (GUILayout.Button("Select", EditorStyles.miniButton, GUILayout.Width(60)))
             {
-                string path = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, "");
+                string path = EditorUtility.OpenFolderPanel("Select Build Output Directory", BuildOutputPath, string.Empty);
                 if (!string.IsNullOrEmpty(path))
                 {
                     BuildOutputPath = path;
@@ -117,7 +196,15 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
 
             CopyBuiltAssetBundles(pluginsDir, assetsSubDir);
 
-            CopyLooseDlls(AssetBundleFolderPath, pluginsDir);
+            foreach (string dllFolderPath in DLLFolderPaths)
+            {
+                if (string.IsNullOrWhiteSpace(dllFolderPath) || !Directory.Exists(dllFolderPath))
+                {
+                    continue;
+                }
+
+                CopyDlls(dllFolderPath, pluginsDir, DLLWhitelistedNames);
+            }
 
             ThunderstoreManifest manifest = new ThunderstoreManifest(modInfo);
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(manifest, Newtonsoft.Json.Formatting.Indented);
@@ -216,12 +303,24 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
         }
     }
 
-    private static void CopyLooseDlls(string assetBundleFolderPath, string pluginsDir)
+    private static void CopyDlls(string dllsFolderPath, string pluginsDir, List<string> DLLWhitelistedNames)
     {
-        foreach (string dllPath in Directory.EnumerateFiles(assetBundleFolderPath, "*.dll", SearchOption.AllDirectories))
+        Debug.Log($"[DawnLib Editor] Copying dlls from '{dllsFolderPath}' to '{pluginsDir}'");
+        foreach (string dllPath in Directory.EnumerateFiles(dllsFolderPath, "*.dll", SearchOption.AllDirectories))
         {
-            string destinationPath = Path.Combine(pluginsDir, Path.GetFileName(dllPath));
-            File.Copy(dllPath, destinationPath, overwrite: true);
+            string dllFileName = Path.GetFileName(dllPath);
+            foreach (string whitelistedName in DLLWhitelistedNames)
+            {
+                if (!dllFileName.Trim().ToLowerInvariant().Replace(".dll", string.Empty).Equals(whitelistedName.Trim().ToLowerInvariant().Replace(".dll", string.Empty), StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                Debug.Log($"[DawnLib Editor] Copying whitelisted dll '{dllFileName}'");
+                string destinationPath = Path.Combine(pluginsDir, dllFileName);
+                File.Copy(dllPath, destinationPath, overwrite: true);
+                break;
+            }
         }
     }
 
@@ -234,5 +333,49 @@ public class DuskModInformationReleaseBuild : UnityEditor.Editor
     {
         return assetBundleName.Replace('/', Path.DirectorySeparatorChar)
                               .Replace('\\', Path.DirectorySeparatorChar);
+    }
+
+    private void SaveDLLPaths()
+    {
+        DuskModInformation modInfo = (DuskModInformation)target;
+        EditorPrefs.SetInt("DawnLibEditor.DLLPath.Count." + modInfo.name, DLLFolderPaths.Count);
+        for (int i = 0; i < DLLFolderPaths.Count; i++)
+        {
+            EditorPrefs.SetString($"DawnLibEditor.DLLPath.{modInfo.name}.{i}", DLLFolderPaths[i]);
+        }
+    }
+
+    private void SaveWhitelistedDLLNames()
+    {
+        DuskModInformation modInfo = (DuskModInformation)target;
+        EditorPrefs.SetInt("DawnLibEditor.DLLWhitelistedNames.Count." + modInfo.name, DLLWhitelistedNames.Count);
+        for (int i = 0; i < DLLWhitelistedNames.Count; i++)
+        {
+            EditorPrefs.SetString($"DawnLibEditor.DLLWhitelistedNames.{modInfo.name}.{i}", DLLWhitelistedNames[i]);
+        }
+    }
+
+    private void LoadDLLPaths()
+    {
+        DLLFolderPaths.Clear();
+
+        DuskModInformation modInfo = (DuskModInformation)target;
+        int count = EditorPrefs.GetInt("DawnLibEditor.DLLPath.Count." + modInfo.name, 0);
+        for (int i = 0; i < count; i++)
+        {
+            DLLFolderPaths.Add(EditorPrefs.GetString($"DawnLibEditor.DLLPath.{modInfo.name}.{i}", string.Empty));
+        }
+    }
+
+    private void LoadWhitelistedDLLNames()
+    {
+        DLLWhitelistedNames.Clear();
+
+        DuskModInformation modInfo = (DuskModInformation)target;
+        int count = EditorPrefs.GetInt("DawnLibEditor.DLLWhitelistedNames.Count." + modInfo.name, 0);
+        for (int i = 0; i < count; i++)
+        {
+            DLLWhitelistedNames.Add(EditorPrefs.GetString($"DawnLibEditor.DLLWhitelistedNames.{modInfo.name}.{i}", string.Empty));
+        }
     }
 }
